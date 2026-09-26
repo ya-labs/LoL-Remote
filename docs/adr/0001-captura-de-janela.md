@@ -48,6 +48,14 @@ redimensiona a janela.
 - **`PrintWindow`/GDI:** não avaliada; menos eficiente e com problemas
   conhecidos em janelas aceleradas por GPU, como o League Client.
 
+## Validação no cliente real
+
+Em 26/09/2026 a captura funcionou no League Client (`LeagueClientUx`,
+1280x720) com a janela visível, coberta e em outro monitor. O cliente não tem
+barra de título do Windows e continua desenhando quando minimizado pelo botão
+dele (não fica "minimizado" para o Windows). Detalhes no
+[spike de captura](../spike-captura.md#resultado-no-cliente-real-26092026).
+
 ## Pendências
 
 - Monitores com escalas diferentes (ex.: 100% e 150%) não foram testados; os

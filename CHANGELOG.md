@@ -64,6 +64,9 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Validado
 
+- 26/09/2026, League Client real: captura só da janela do cliente, inclusive
+  coberta e em outro monitor, sem ler a API e sem clicar.
+
 - 26/09/2026, iPhone via Tailscale: controle do simulador pelo toque, com
   bloqueio durante a partida (0 violações), pausa por uso local do PC e recusa
   com janela minimizada. Vídeo com p95 de 40 a 54 ms.

@@ -45,6 +45,27 @@ Se a janela não for encontrada, o programa lista as janelas visíveis com
 "League" no título e o processo de cada uma, para ajustar os argumentos.
 Pule a etapa "fechada" (P) se não quiser fechar o cliente.
 
+### Resultado no cliente real (26/09/2026)
+
+Janela "League of Legends" do processo `LeagueClientUx`, 1280x720, escala 100%.
+
+| Etapa | Resultado |
+|---|---|
+| Visível | Aprovado: ~55 frames/s (o cliente anima o tempo todo), só a janela |
+| Coberta | Aprovado: a amostra mostra o cliente, não a janela por cima |
+| Redimensionada | Não testada: o cliente não redimensiona pela borda (só pelas configurações dele) |
+| Outro monitor | Aprovado (os dois monitores em 100%) |
+| Minimizada | Diferente do simulador: o botão de minimizar do cliente não deixa a janela no estado "minimizada" do Windows; a captura continua (~16 frames/s) com a imagem do cliente |
+| Fechada | Não testada (cliente mantido aberto); a etapa acusou corretamente que a janela ainda existia |
+
+Observações para o agente:
+
+- O cliente não tem barra de título do Windows: o frame capturado é igual à
+  área cliente.
+- Como o cliente minimizado continua desenhando, o agente precisa descobrir
+  como ele está escondido (fora da tela, oculto ou apenas atrás) e restaurar a
+  janela antes de clicar; hoje o clique seria recusado com `target-obscured`.
+
 ## Como executar
 
 Com o simulador aberto, em outro terminal na raiz do repositório:
