@@ -7,6 +7,17 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Adicionado
 
+- Agente (`src/LoLRemote.Agent`): primeira versão que transforma toques no
+  iPhone em cliques no simulador. Envia vídeo, recebe toques pelo canal de
+  controle, valida cada um, traz a janela para a frente, confere que nada a
+  cobre e só então clica. Bloqueia durante a partida, com a janela minimizada,
+  sem imagem recente, com alguém usando o PC e após 30 minutos. Como rodar em
+  [`docs/agente.md`](docs/agente.md).
+- Página do celular com toque, marcação verde/vermelha de cada toque, motivo
+  da recusa e faixa de estado (liberado/bloqueado).
+- Simulador informa a fase do jogo como o League Client (lockfile + API local
+  com senha).
+
 - Contratos da comunicação celular ↔ PC: API HTTP (`contracts/openapi.yaml`),
   mensagens de controle (`contracts/schemas/control-message.schema.json`) e
   exemplos válidos e inválidos. Explicação em [`docs/contratos.md`](docs/contratos.md).
@@ -52,6 +63,10 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 - Texto do botão "ENCONTRAR PARTIDA" cortado no simulador.
 
 ### Validado
+
+- 26/09/2026, iPhone via Tailscale: controle do simulador pelo toque, com
+  bloqueio durante a partida (0 violações), pausa por uso local do PC e recusa
+  com janela minimizada. Vídeo com p95 de 40 a 54 ms.
 
 - 26/09/2026, iPhone (Safari 26.6.1) via Tailscale direto: vídeo H.264
   1280x720 a 15 FPS com latência p95 de 44 ms no Wi-Fi e 62 ms no 4G/5G.

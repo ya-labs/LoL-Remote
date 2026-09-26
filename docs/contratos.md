@@ -42,6 +42,9 @@ ou acima de 4096 caracteres são descartadas.
 5. Bloqueio do sistema (falha fechada, nesta ordem): modo remoto inativo, fase
    desconhecida, fase que não permite input, janela indisponível, janela
    minimizada, captura sem frame recente, atividade local no PC.
+7. No Windows, a janela é trazida para o primeiro plano e o ponto da tela é
+   conferido; se outra janela estiver na frente, o toque é recusado com
+   `target-obscured`.
 6. Conversão do ponto: toque na faixa preta ou na barra de título/bordas é
    recusado, não aproximado.
 
@@ -61,5 +64,5 @@ tela e para a escala 0..65535 do `SendInput`.
 
 - Autenticação: token de sessão após pareamento e WebAuthn (v0.5).
 - Mensagens de teclado, scroll e gestos (v0.2).
-- A implementação atual do spike de WebRTC ainda usa as rotas provisórias
-  `/offer`, `/time` e `/stats`; o agente usará as rotas do contrato.
+- O spike de WebRTC continua com as rotas provisórias `/offer`, `/time` e
+  `/stats`; o agente (`src/LoLRemote.Agent`) já usa as rotas do contrato.

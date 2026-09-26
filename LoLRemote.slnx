@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/LoLRemote.Agent/LoLRemote.Agent.csproj" />
     <Project Path="src/LoLRemote.Agent.Core/LoLRemote.Agent.Core.csproj" />
     <Project Path="src/LoLRemote.Simulator.Core/LoLRemote.Simulator.Core.csproj" />
     <Project Path="src/LoLRemote.Simulator/LoLRemote.Simulator.csproj" />

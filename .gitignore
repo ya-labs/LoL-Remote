@@ -6,6 +6,7 @@ obj/
 .vs/
 TestResults/
 spike-output/
+agent-output/
 *.binlog
 
 # IDEs

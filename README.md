@@ -10,11 +10,17 @@ um bot: ele não escolhe campeão, bane, altera runas ou joga automaticamente.
 
 ## Estado atual
 
-O projeto iniciou a v0.1. Existe um simulador do fluxo do League Client
-(`src/LoLRemote.Simulator`) com núcleo testável
-(`src/LoLRemote.Simulator.Core`), descrito em
-[`docs/simulador.md`](docs/simulador.md). O aplicativo WPF já foi executado no
-Windows. Captura, transporte e input remoto ainda não existem.
+A v0.1 está quase concluída. Já funcionam, contra um simulador do League
+Client:
+
+- captura exclusiva da janela e vídeo H.264 para o iPhone por WebRTC, pela
+  Tailscale ([ADR 0001](docs/adr/0001-captura-de-janela.md) e
+  [ADR 0002](docs/adr/0002-transporte-de-video-webrtc-h264.md));
+- controle por toque com validação e bloqueio durante a partida
+  ([agente](docs/agente.md)).
+
+Falta testar com o League Client real, o que depende de revisar antes as
+políticas da Riot sobre a API local.
 
 ## Objetivo da v1.0
 
@@ -47,8 +53,8 @@ de compatibilidade, desempenho e licença.
 
 ## Como executar
 
-Somente o simulador existe. Pré-requisitos, comandos e o status de validação
-estão em [`docs/simulador.md`](docs/simulador.md). Não documente comandos
+Veja [`docs/agente.md`](docs/agente.md) (agente e roteiro de teste com o
+iPhone) e [`docs/simulador.md`](docs/simulador.md). Não documente comandos
 futuros como se já funcionassem.
 
 ## Aprendizagem e colaboração

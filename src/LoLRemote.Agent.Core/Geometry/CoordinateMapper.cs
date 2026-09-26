@@ -59,6 +59,23 @@ public static class CoordinateMapper
     }
 
     /// <summary>
+    /// Posição da área cliente dentro do frame capturado. O frame corresponde aos
+    /// limites visíveis da janela (DWM); a área cliente fica dentro deles.
+    /// </summary>
+    /// <param name="frameOnScreen">Limites da janela na tela, iguais ao frame capturado.</param>
+    /// <param name="clientOnScreen">Área cliente na tela.</param>
+    public static PixelRect ClientAreaInFrame(PixelRect frameOnScreen, PixelRect clientOnScreen)
+    {
+        var left = Math.Max(clientOnScreen.X, frameOnScreen.X);
+        var top = Math.Max(clientOnScreen.Y, frameOnScreen.Y);
+        var right = Math.Min(clientOnScreen.Right, frameOnScreen.Right);
+        var bottom = Math.Min(clientOnScreen.Bottom, frameOnScreen.Bottom);
+        return right <= left || bottom <= top
+            ? default
+            : new PixelRect(left - frameOnScreen.X, top - frameOnScreen.Y, right - left, bottom - top);
+    }
+
+    /// <summary>
     /// Converte um pixel da tela (coordenadas físicas da área de trabalho virtual)
     /// para a escala 0..65535 usada pelo SendInput com MOUSEEVENTF_VIRTUALDESK.
     /// </summary>

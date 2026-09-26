@@ -179,6 +179,7 @@ components:
           description: Código estável para o celular decidir o que mostrar.
           enum:
             - invalid-offer
+            - invalid-request
             - payload-too-large
             - target-unavailable
             - encoder-unavailable

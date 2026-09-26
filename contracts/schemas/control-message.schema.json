@@ -42,6 +42,7 @@
         "outside-client-area",
         "target-unavailable",
         "target-minimized",
+        "target-obscured",
         "capture-stale",
         "phase-unknown",
         "phase-blocked",

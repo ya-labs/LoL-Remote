@@ -62,6 +62,11 @@ finalização 10 s. O argumento `--fast` usa 2, 8, 12, 12 e 4 s.
   de segundo, atualizada a cada 100 ms. Assim a captura sempre recebe frames
   novos, e dá para comparar a hora exibida no celular com a do PC para estimar
   a latência.
+- **Fase no formato da LCU.** O simulador escreve um lockfile em
+  `%LOCALAPPDATA%\LoLRemote\simulator\lockfile` (`nome:pid:porta:senha:http`) e
+  responde a `GET /lol-gameflow/v1/gameflow-phase` em 127.0.0.1 com autenticação
+  Basic (usuário `riot`), como o League Client. Assim o agente testa o bloqueio
+  por fase sem o jogo real. O lockfile é apagado ao fechar.
 - **Tempo injetável.** O motor recebe um `TimeProvider`; os testes avançam o
   relógio manualmente, sem espera real.
 

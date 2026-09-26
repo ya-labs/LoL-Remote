@@ -36,6 +36,9 @@ public enum InputRejectReason
     /// <summary>Janela alvo minimizada.</summary>
     TargetMinimized,
 
+    /// <summary>Janela alvo não pôde ficar em primeiro plano ou outra janela cobre o ponto.</summary>
+    TargetObscured,
+
     /// <summary>Sem frame recente da janela: a pessoa não está vendo o estado atual.</summary>
     CaptureStale,
 

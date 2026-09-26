@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LoL Remote</title>
+  <style>
+    :root { color-scheme: dark; --ok: #0ac8b9; --bad: #e84057; --gold: #c8aa6e; --muted: #a09b8c; }
+    body { margin: 0; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); background: #010a13; color: #f0e6d2; font: 15px -apple-system, system-ui, sans-serif; }
+    h1 { font-size: 16px; margin: 0 0 8px; color: var(--gold); }
+    .banner { padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; font-weight: 600; background: #1e282d; }
+    .banner.ok { background: #06332f; color: var(--ok); }
+    .banner.bad { background: #3a0d15; color: #ff8a9a; }
+    .stage { position: relative; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    video { width: 100%; background: #000; border: 1px solid #785a28; display: block; pointer-events: none; }
+    .marker { position: absolute; width: 26px; height: 26px; margin: -15px 0 0 -15px; border-radius: 50%; border: 3px solid var(--muted); pointer-events: none; transition: opacity .6s; }
+    .marker.ok { border-color: var(--ok); }
+    .marker.bad { border-color: var(--bad); }
+    .toast { min-height: 22px; margin: 8px 0; color: #ff8a9a; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--gold); background: #1e282d; color: #f0e6d2; }
+    button:disabled { opacity: .4; }
+    details { margin-top: 8px; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    td { padding: 4px; border-bottom: 1px solid #1e282d; }
+    td:first-child { width: 50%; }
+    .warn { background: #3a1d05; border: 1px solid var(--gold); padding: 8px; border-radius: 8px; display: none; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <h1>LoL Remote</h1>
+  <div id="insecure" class="warn">Esta página não está em HTTPS. Abra pelo endereço do Tailscale Serve (https://...ts.net).</div>
+  <div id="banner" class="banner">Desconectado</div>
+
+  <div id="stage" class="stage">
+    <video id="video" playsinline muted autoplay></video>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <div class="row">
+    <button id="connect">Conectar</button>
+    <button id="disconnect" disabled>Desconectar</button>
+  </div>
+
+  <details>
+    <summary>Diagnóstico</summary>
+    <table>
+      <tr><td>Latência do vídeo (p50 / p95)</td><td id="latency">-</td></tr>
+      <tr><td>Toque → confirmação (último)</td><td id="tapRtt">-</td></tr>
+      <tr><td>Resolução · FPS</td><td id="res">-</td></tr>
+      <tr><td>RTT da rede</td><td id="rtt">-</td></tr>
+      <tr><td>Pacotes perdidos · congelamentos</td><td id="loss">-</td></tr>
+      <tr><td>Sincronia do relógio</td><td id="clock">-</td></tr>
+    </table>
+  </details>
+
+  <canvas id="strip" width="644" height="16" hidden></canvas>
+
+  <script>
+    // Código de barras de horário: deve bater com Video/VideoStreamer.cs.
+    const W = 1280, H = 720, BLOCK = 16, BITS = 40, X0 = 4, Y0 = H - BLOCK - 4;
+    const REGION_W = X0 + BITS * BLOCK;
+
+    const REASONS = {
+      'unsupported-version': 'versão incompatível',
+      'out-of-order': 'toque repetido',
+      'expired': 'o toque chegou atrasado',
+      'from-future': 'relógio fora de sincronia',
+      'rate-limited': 'toques rápidos demais',
+      'invalid-coordinates': 'posição inválida',
+      'letterbox': 'toque fora da imagem',
+      'outside-client-area': 'toque na barra de título',
+      'target-unavailable': 'janela do jogo não encontrada',
+      'target-minimized': 'janela do jogo minimizada',
+      'target-obscured': 'outra janela está na frente',
+      'capture-stale': 'imagem desatualizada',
+      'phase-unknown': 'fase do jogo desconhecida',
+      'phase-blocked': 'partida em andamento',
+      'local-activity': 'alguém está usando o PC',
+      'remote-mode-inactive': 'modo remoto expirado',
+    };
+
+    const $ = id => document.getElementById(id);
+    const video = $('video');
+    const stage = $('stage');
+    const canvas = $('strip');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    let pc = null, channel = null;
+    let offset = 0, clockRtt = null;
+    let seq = 0;
+    const pending = new Map();   // seq -> { marker, sentAt }
+    let samples = [];
+    let timers = [];
+
+    if (!window.isSecureContext) { $('insecure').style.display = 'block'; }
+
+    const serverNow = () => Math.round(performance.now() + offset);
+
+    async function syncClock() {
+      let best = null;
+      for (let i = 0; i < 8; i++) {
+        const t0 = performance.now();
+        const response = await fetch('api/v1/time', { cache: 'no-store' });
+        const { serverTimeMs } = await response.json();
+        const t1 = performance.now();
+        if (!best || t1 - t0 < best.rtt) { best = { rtt: t1 - t0, offset: serverTimeMs - (t0 + t1) / 2 }; }
+      }
+      offset = best.offset;
+      clockRtt = best.rtt;
+      $('clock').textContent = `±${(clockRtt / 2).toFixed(0)} ms`;
+    }
+
+    function setBanner(text, kind) {
+      const banner = $('banner');
+      banner.textContent = text;
+      banner.className = 'banner' + (kind ? ' ' + kind : '');
+    }
+
+    function showState(state) {
+      if (state.inputAllowed) {
+        setBanner(`Controle liberado · ${state.phase}`, 'ok');
+      } else {
+        setBanner(`Controle bloqueado: ${REASONS[state.reason] || state.reason} · ${state.phase}`, 'bad');
+      }
+    }
+
+    // ---- Toques ----------------------------------------------------------
+    function videoPoint(event) {
+      const rect = video.getBoundingClientRect();
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) { return null; }
+      const scale = Math.min(rect.width / vw, rect.height / vh);
+      const shownW = vw * scale, shownH = vh * scale;
+      const left = rect.left + (rect.width - shownW) / 2;
+      const top = rect.top + (rect.height - shownH) / 2;
+      const x = (event.clientX - left) / shownW;
+      const y = (event.clientY - top) / shownH;
+      if (x < 0 || x > 1 || y < 0 || y > 1) { return null; }
+      return { x, y, px: event.clientX - stage.getBoundingClientRect().left, py: event.clientY - stage.getBoundingClientRect().top };
+    }
+
+    stage.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      if (!channel || channel.readyState !== 'open') { return; }
+      const point = videoPoint(event);
+      if (!point) { return; }
+
+      const marker = document.createElement('div');
+      marker.className = 'marker';
+      marker.style.left = `${point.px}px`;
+      marker.style.top = `${point.py}px`;
+      stage.appendChild(marker);
+
+      seq += 1;
+      const sentAt = serverNow();
+      pending.set(seq, { marker, sentAt: performance.now() });
+      channel.send(JSON.stringify({ type: 'input.tap', v: 1, seq, sentAt, x: point.x, y: point.y }));
+
+      const mySeq = seq;
+      setTimeout(() => {
+        const item = pending.get(mySeq);
+        if (item) { pending.delete(mySeq); finishMarker(item.marker, null); $('toast').textContent = 'Sem resposta do PC para o toque.'; }
+      }, 2000);
+    });
+
+    function finishMarker(marker, ok) {
+      if (ok !== null) { marker.classList.add(ok ? 'ok' : 'bad'); }
+      setTimeout(() => { marker.style.opacity = '0'; }, 400);
+      setTimeout(() => marker.remove(), 1100);
+    }
+
+    function onControlMessage(event) {
+      let message;
+      try { message = JSON.parse(event.data); } catch { return; }
+      if (message.type === 'state') {
+        showState(message);
+      } else if (message.type === 'input.ack') {
+        const item = pending.get(message.seq);
+        if (!item) { return; }
+        pending.delete(message.seq);
+        const accepted = message.status === 'accepted';
+        finishMarker(item.marker, accepted);
+        $('tapRtt').textContent = `${Math.round(performance.now() - item.sentAt)} ms`;
+        $('toast').textContent = accepted ? '' : `Toque recusado: ${REASONS[message.reason] || message.reason}.`;
+      }
+    }
+
+    // ---- Latência do vídeo ----------------------------------------------
+    function readStamp() {
+      const sx = video.videoWidth / W, sy = video.videoHeight / H;
+      if (!sx || !sy) { return null; }
+      ctx.drawImage(video, 0, Y0 * sy, REGION_W * sx, BLOCK * sy, 0, 0, canvas.width, canvas.height);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const bits = [];
+      for (let i = 0; i < BITS; i++) {
+        const x = X0 + i * BLOCK + BLOCK / 2, y = BLOCK / 2;
+        let sum = 0;
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const p = ((y + dy) * canvas.width + (x + dx)) * 4;
+            sum += 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+          }
+        }
+        bits.push(sum / 25 > 128 ? 1 : 0);
+      }
+      if (bits[0] !== 1 || bits[1] !== 0 || bits[2] !== 1 || bits[3] !== 0) { return null; }
+      let value = 0, ones = 0, checksum = 0;
+      for (let i = 4; i < 36; i++) { value = value * 2 + bits[i]; ones += bits[i]; }
+      for (let i = 36; i < 40; i++) { checksum = checksum * 2 + bits[i]; }
+      return (ones & 0xF) === checksum ? value : null;
+    }
+
+    function onFrame(now, metadata) {
+      if (!pc) { return; }
+      const stamp = readStamp();
+      if (stamp !== null) {
+        const latency = (metadata.expectedDisplayTime || now) + offset - stamp;
+        if (latency >= 0 && latency < 10000) {
+          const at = performance.now();
+          samples.push({ at, ms: latency });
+          while (samples.length && samples[0].at < at - 30000) { samples.shift(); }
+        }
+      }
+      video.requestVideoFrameCallback(onFrame);
+    }
+
+    const percentile = (values, p) => {
+      if (!values.length) { return null; }
+      const sorted = [...values].sort((a, b) => a - b);
+      return Math.round(sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))]);
+    };
+
+    async function collectStats() {
+      if (!pc) { return; }
+      const report = await pc.getStats();
+      let inbound = null, transport = null;
+      const byId = new Map();
+      report.forEach(r => {
+        byId.set(r.id, r);
+        if (r.type === 'inbound-rtp' && r.kind === 'video') { inbound = r; }
+        if (r.type === 'transport') { transport = r; }
+      });
+      const pair = transport && transport.selectedCandidatePairId ? byId.get(transport.selectedCandidatePairId) : null;
+      const local = pair && byId.get(pair.localCandidateId), remote = pair && byId.get(pair.remoteCandidateId);
+      const codec = inbound && inbound.codecId && byId.get(inbound.codecId);
+      const values = samples.map(s => s.ms);
+      const stats = {
+        scenario: 'other',
+        connectionState: pc.connectionState,
+        codec: codec ? codec.mimeType : null,
+        width: inbound ? inbound.frameWidth ?? null : null,
+        height: inbound ? inbound.frameHeight ?? null : null,
+        fps: inbound ? inbound.framesPerSecond ?? null : null,
+        rttMs: pair && pair.currentRoundTripTime != null ? Math.round(pair.currentRoundTripTime * 1000) : null,
+        packetsLost: inbound ? inbound.packetsLost ?? null : null,
+        freezeCount: inbound ? inbound.freezeCount ?? null : null,
+        jitterBufferMs: inbound && inbound.jitterBufferEmittedCount ? Math.round(inbound.jitterBufferDelay / inbound.jitterBufferEmittedCount * 1000) : null,
+        latencyP50Ms: percentile(values, 0.5),
+        latencyP95Ms: percentile(values, 0.95),
+        candidateTypes: local && remote ? `${local.candidateType}/${remote.candidateType}` : null,
+      };
+      $('latency').textContent = stats.latencyP50Ms != null ? `${stats.latencyP50Ms} / ${stats.latencyP95Ms} ms` : 'medindo...';
+      $('res').textContent = stats.width ? `${stats.width}x${stats.height} · ${Math.round(stats.fps ?? 0)} fps` : '-';
+      $('rtt').textContent = stats.rttMs != null ? `${stats.rttMs} ms` : '-';
+      $('loss').textContent = `${stats.packetsLost ?? '-'} · ${stats.freezeCount ?? '-'}`;
+      fetch('api/v1/diagnostics/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(stats) }).catch(() => {});
+    }
+
+    // ---- Conexão --------------------------------------------------------
+    async function connect() {
+      $('connect').disabled = true;
+      setBanner('Sincronizando relógio...');
+      samples = [];
+      seq = 0;
+      pending.clear();
+      try {
+        await syncClock();
+        pc = new RTCPeerConnection();
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        channel = pc.createDataChannel('control', { ordered: true });
+        channel.onmessage = onControlMessage;
+        channel.onclose = () => setBanner('Canal de controle fechado', 'bad');
+        pc.ontrack = event => {
+          if (event.receiver && 'jitterBufferTarget' in event.receiver) {
+            try { event.receiver.jitterBufferTarget = 0; } catch (e) { /* não suportado */ }
+          }
+          video.srcObject = event.streams[0] || new MediaStream([event.track]);
+          video.play().catch(() => {});
+          video.requestVideoFrameCallback(onFrame);
+        };
+        pc.onconnectionstatechange = () => {
+          if (pc && (pc.connectionState === 'failed' || pc.connectionState === 'disconnected')) {
+            setBanner(`Conexão ${pc.connectionState}`, 'bad');
+          }
+        };
+
+        setBanner('Conectando...');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        const response = await fetch('api/v1/sessions', { method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body: pc.localDescription.sdp });
+        if (response.status !== 201) { throw new Error(`o PC recusou a conexão (${response.status})`); }
+        await pc.setRemoteDescription({ type: 'answer', sdp: await response.text() });
+
+        timers = [setInterval(collectStats, 2000), setInterval(syncClock, 20000)];
+        $('disconnect').disabled = false;
+      } catch (error) {
+        disconnect();
+        setBanner(`Erro: ${error.message}`, 'bad');
+      }
+    }
+
+    function disconnect() {
+      timers.forEach(clearInterval);
+      timers = [];
+      if (channel) { channel.onclose = null; channel.close(); channel = null; }
+      if (pc) { pc.close(); pc = null; }
+      video.srcObject = null;
+      pending.forEach(item => item.marker.remove());
+      pending.clear();
+      setBanner('Desconectado');
+      $('connect').disabled = false;
+      $('disconnect').disabled = true;
+    }
+
+    $('connect').onclick = connect;
+    $('disconnect').onclick = disconnect;
+  </script>
+</body>
+</html>

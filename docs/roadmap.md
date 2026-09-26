@@ -14,7 +14,7 @@ O roadmap registra resultados de produto e marca o que já foi entregue
 - [x] simulador seguro do fluxo do League;
 - [x] descoberta e captura exclusiva de uma janela ([ADR 0001](adr/0001-captura-de-janela.md));
 - [x] spike WebRTC H.264 no iPhone ([ADR 0002](adr/0002-transporte-de-video-webrtc-h264.md));
-- [ ] toque normalizado e clique remoto controlado;
+- [x] toque normalizado e clique remoto controlado ([agente](agente.md));
 - [x] medição inicial de latência e ADR de transporte.
 
 ## v0.2 — Controle utilizável
@@ -82,7 +82,7 @@ bloqueio de gameplay começam na v0.1. A v0.6 consolida e audita o conjunto.
    diferentes pendentes para a v0.2).
 4. [x] Validar WebRTC H.264 entre .NET e Safari/iPhone por Tailscale.
 5. [x] Definir OpenAPI, schemas e erros ([contratos](contratos.md)).
-6. [ ] Implementar transformação de toque e `SendInput` no simulador.
+6. [x] Implementar transformação de toque e `SendInput` no simulador.
 7. [x] Medir latência e registrar a decisão de transporte (vídeo; a latência
    do toque será medida junto com o input).
 8. [ ] Somente então testar captura e clique no League Client real.
