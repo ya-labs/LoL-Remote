@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/spikes/">
     <Project Path="spikes/LoLRemote.CaptureSpike/LoLRemote.CaptureSpike.csproj" />
+    <Project Path="spikes/LoLRemote.WebRtcSpike/LoLRemote.WebRtcSpike.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/LoLRemote.Simulator.Core.Tests/LoLRemote.Simulator.Core.Tests.csproj" />

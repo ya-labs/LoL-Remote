@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LoL Remote - spike WebRTC</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 12px; background: #010a13; color: #f0e6d2; font: 15px -apple-system, system-ui, sans-serif; }
+    h1 { font-size: 17px; margin: 0 0 10px; color: #c8aa6e; }
+    video { width: 100%; background: #000; border: 1px solid #785a28; display: block; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; align-items: center; }
+    button, select { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid #c8aa6e; background: #1e282d; color: #f0e6d2; }
+    button:disabled { opacity: .4; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    td { padding: 5px 4px; border-bottom: 1px solid #1e282d; }
+    td:first-child { color: #a09b8c; width: 45%; }
+    .big { font-size: 22px; font-weight: 600; color: #0ac8b9; }
+    .warn { background: #3a1d05; border: 1px solid #c8aa6e; padding: 8px; border-radius: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <h1>LoL Remote · spike WebRTC H.264</h1>
+  <div id="insecure" class="warn">Esta página não está em HTTPS. Abra pelo endereço do Tailscale Serve (https://...ts.net).</div>
+
+  <video id="video" playsinline muted autoplay></video>
+
+  <div class="row">
+    <button id="connect">Conectar</button>
+    <button id="disconnect" disabled>Desconectar</button>
+    <select id="scenario" aria-label="Rede em uso">
+      <option value="wifi">Rede: Wi-Fi</option>
+      <option value="4g5g">Rede: 4G/5G</option>
+      <option value="outra">Rede: outra</option>
+    </select>
+  </div>
+
+  <table>
+    <tr><td>Latência (p50 / p95, últimos 30 s)</td><td class="big" id="latency">-</td></tr>
+    <tr><td>Estado</td><td id="state">desconectado</td></tr>
+    <tr><td>Codec</td><td id="codec">-</td></tr>
+    <tr><td>Resolução · FPS</td><td id="res">-</td></tr>
+    <tr><td>Conexão (local / remoto)</td><td id="path">-</td></tr>
+    <tr><td>RTT da rede</td><td id="rtt">-</td></tr>
+    <tr><td>Decodificação média</td><td id="decode">-</td></tr>
+    <tr><td>Quadros descartados</td><td id="dropped">-</td></tr>
+    <tr><td>Sincronia do relógio</td><td id="clock">-</td></tr>
+  </table>
+
+  <canvas id="strip" width="644" height="16" hidden></canvas>
+
+  <script>
+    // Deve bater com VideoStreamer.cs.
+    const W = 1280, H = 720, BLOCK = 16, BITS = 40, X0 = 4, Y0 = H - BLOCK - 4;
+    const REGION_W = X0 + BITS * BLOCK;
+    const WINDOW_MS = 30000;
+
+    const $ = id => document.getElementById(id);
+    const video = $('video');
+    const canvas = $('strip');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    let pc = null;
+    let offset = 0;          // hora do servidor ≈ performance.now() + offset
+    let clockRtt = null;
+    let samples = [];        // { at, ms }
+    let statsTimer = null;
+    let clockTimer = null;
+    let last = {};
+
+    if (!window.isSecureContext) { $('insecure').style.display = 'block'; }
+
+    async function syncClock() {
+      let best = null;
+      for (let i = 0; i < 8; i++) {
+        const t0 = performance.now();
+        const response = await fetch('time', { cache: 'no-store' });
+        const server = Number(await response.text());
+        const t1 = performance.now();
+        if (!best || t1 - t0 < best.rtt) { best = { rtt: t1 - t0, offset: server - (t0 + t1) / 2 }; }
+      }
+      offset = best.offset;
+      clockRtt = best.rtt;
+      $('clock').textContent = `±${(clockRtt / 2).toFixed(0)} ms`;
+    }
+
+    function readStamp() {
+      const sx = video.videoWidth / W, sy = video.videoHeight / H;
+      if (!sx || !sy) { return null; }
+      ctx.drawImage(video, 0, Y0 * sy, REGION_W * sx, BLOCK * sy, 0, 0, canvas.width, canvas.height);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const y = BLOCK / 2;
+      const bits = [];
+      for (let i = 0; i < BITS; i++) {
+        const x = X0 + i * BLOCK + BLOCK / 2;
+        let sum = 0;
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const p = ((y + dy) * canvas.width + (x + dx)) * 4;
+            sum += 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+          }
+        }
+        bits.push(sum / 25 > 128 ? 1 : 0);
+      }
+      if (bits[0] !== 1 || bits[1] !== 0 || bits[2] !== 1 || bits[3] !== 0) { return null; }
+      let value = 0, ones = 0;
+      for (let i = 4; i < 36; i++) { value = value * 2 + bits[i]; ones += bits[i]; }
+      let checksum = 0;
+      for (let i = 36; i < 40; i++) { checksum = checksum * 2 + bits[i]; }
+      return (ones & 0xF) === checksum ? value : null;
+    }
+
+    function onFrame(now, metadata) {
+      if (!pc) { return; }
+      const stamp = readStamp();
+      if (stamp !== null) {
+        const shown = (metadata.expectedDisplayTime || now) + offset;
+        const latency = shown - stamp;
+        if (latency >= 0 && latency < 10000) {
+          const at = performance.now();
+          samples.push({ at, ms: latency });
+          while (samples.length && samples[0].at < at - WINDOW_MS) { samples.shift(); }
+        }
+      }
+      video.requestVideoFrameCallback(onFrame);
+    }
+
+    function percentile(values, p) {
+      if (!values.length) { return null; }
+      const sorted = [...values].sort((a, b) => a - b);
+      return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+    }
+
+    async function collectStats() {
+      if (!pc) { return; }
+      const report = await pc.getStats();
+      let inbound = null, pair = null, transport = null;
+      const byId = new Map();
+      report.forEach(r => {
+        byId.set(r.id, r);
+        if (r.type === 'inbound-rtp' && r.kind === 'video') { inbound = r; }
+        if (r.type === 'transport') { transport = r; }
+      });
+      if (transport && transport.selectedCandidatePairId) { pair = byId.get(transport.selectedCandidatePairId); }
+      if (!pair) { report.forEach(r => { if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') { pair = r; } }); }
+
+      const values = samples.map(s => s.ms);
+      const p50 = percentile(values, 0.5), p95 = percentile(values, 0.95);
+      const codec = inbound && inbound.codecId && byId.get(inbound.codecId);
+      const local = pair && byId.get(pair.localCandidateId);
+      const remote = pair && byId.get(pair.remoteCandidateId);
+      const decoded = inbound ? inbound.framesDecoded : 0;
+      const decodeMs = inbound && decoded ? (inbound.totalDecodeTime / decoded) * 1000 : null;
+
+      const stats = {
+        scenario: $('scenario').value,
+        state: pc.connectionState,
+        codec: codec ? codec.mimeType : null,
+        width: inbound ? inbound.frameWidth : null,
+        height: inbound ? inbound.frameHeight : null,
+        fps: inbound && inbound.framesPerSecond != null ? Math.round(inbound.framesPerSecond) : null,
+        framesDecoded: decoded,
+        framesDropped: inbound ? inbound.framesDropped : null,
+        decodeMs: decodeMs != null ? Math.round(decodeMs * 10) / 10 : null,
+        rttMs: pair && pair.currentRoundTripTime != null ? Math.round(pair.currentRoundTripTime * 1000) : null,
+        localType: local ? local.candidateType : null,
+        remoteType: remote ? remote.candidateType : null,
+        protocol: local ? local.protocol : null,
+        latencyP50: p50 != null ? Math.round(p50) : null,
+        latencyP95: p95 != null ? Math.round(p95) : null,
+        latencySamples: values.length,
+        clockErrorMs: clockRtt != null ? Math.round(clockRtt / 2) : null,
+        userAgent: navigator.userAgent,
+      };
+      last = stats;
+
+      $('latency').textContent = p50 != null ? `${stats.latencyP50} / ${stats.latencyP95} ms` : 'medindo...';
+      $('state').textContent = stats.state;
+      $('codec').textContent = stats.codec || '-';
+      $('res').textContent = stats.width ? `${stats.width}x${stats.height} · ${stats.fps ?? '-'} fps` : '-';
+      $('path').textContent = local ? `${stats.localType} / ${stats.remoteType} (${stats.protocol})` : '-';
+      $('rtt').textContent = stats.rttMs != null ? `${stats.rttMs} ms` : '-';
+      $('decode').textContent = stats.decodeMs != null ? `${stats.decodeMs} ms` : '-';
+      $('dropped').textContent = stats.framesDropped ?? '-';
+
+      fetch('stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(stats) })
+        .catch(() => {});
+    }
+
+    async function connect() {
+      $('connect').disabled = true;
+      $('state').textContent = 'sincronizando relógio...';
+      samples = [];
+      try {
+        await syncClock();
+        pc = new RTCPeerConnection();
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        pc.ontrack = event => {
+          video.srcObject = event.streams[0] || new MediaStream([event.track]);
+          video.play().catch(() => {});
+          video.requestVideoFrameCallback(onFrame);
+        };
+        pc.onconnectionstatechange = () => { $('state').textContent = pc ? pc.connectionState : 'desconectado'; };
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        const response = await fetch('offer', { method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body: pc.localDescription.sdp });
+        if (!response.ok) { throw new Error(`servidor recusou a oferta (${response.status})`); }
+        await pc.setRemoteDescription({ type: 'answer', sdp: await response.text() });
+
+        statsTimer = setInterval(collectStats, 2000);
+        clockTimer = setInterval(syncClock, 20000);
+        $('disconnect').disabled = false;
+      } catch (error) {
+        $('state').textContent = `erro: ${error.message}`;
+        disconnect();
+      }
+    }
+
+    function disconnect() {
+      clearInterval(statsTimer);
+      clearInterval(clockTimer);
+      if (pc) { pc.close(); pc = null; }
+      video.srcObject = null;
+      $('connect').disabled = false;
+      $('disconnect').disabled = true;
+    }
+
+    $('connect').onclick = connect;
+    $('disconnect').onclick = disconnect;
+  </script>
+</body>
+</html>

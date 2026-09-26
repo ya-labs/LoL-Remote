@@ -7,6 +7,11 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Adicionado
 
+- Spike de WebRTC (`spikes/LoLRemote.WebRtcSpike`): transmite a janela do
+  simulador para o Safari do iPhone em H.264 e mede a latência automaticamente
+  com um código de barras de horário no vídeo. Detalhes em
+  [`docs/spike-webrtc.md`](docs/spike-webrtc.md).
+
 - Spike de captura de janela (`spikes/LoLRemote.CaptureSpike`): encontra só a
   janela do simulador, captura com a API de captura do Windows e guia um teste
   em 7 etapas (visível, coberta, redimensionada, outro monitor, minimizada,
