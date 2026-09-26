@@ -28,8 +28,10 @@ internal sealed record StepResult(
 /// </summary>
 internal static class GuidedSpike
 {
-    private const string TargetTitle = "LoL Remote Simulator";
-    private const string TargetProcess = "LoLRemote.Simulator";
+    // Alvo padrão: simulador. Para o cliente real (só captura, sem cliques):
+    // --title "League of Legends" --process LeagueClientUx
+    private static string TargetTitle = "LoL Remote Simulator";
+    private static string TargetProcess = "LoLRemote.Simulator";
     private const int SizeTolerance = 2;
     private static readonly TimeSpan MeasureDuration = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan SampleTimeout = TimeSpan.FromSeconds(2);
@@ -45,8 +47,24 @@ internal static class GuidedSpike
         new("fechada", "Janela fechada", "Feche o simulador (o X da janela principal)."),
     ];
 
-    public static async Task<int> RunAsync()
+    public static async Task<int> RunAsync(string[] args)
     {
+        for (var i = 0; i + 1 < args.Length; i += 2)
+        {
+            switch (args[i])
+            {
+                case "--title":
+                    TargetTitle = args[i + 1];
+                    break;
+                case "--process":
+                    TargetProcess = args[i + 1];
+                    break;
+                default:
+                    Console.WriteLine("Uso: [--title <título exato>] [--process <nome do processo>]");
+                    return 1;
+            }
+        }
+
         Console.WriteLine("LoL Remote - spike de captura de janela");
         Console.WriteLine(new string('=', 40));
         Console.WriteLine();
@@ -61,9 +79,13 @@ internal static class GuidedSpike
         if (candidates.Count != 1)
         {
             Console.WriteLine(candidates.Count == 0
-                ? "ERRO: simulador não encontrado. Abra-o antes com:"
-                : $"ERRO: {candidates.Count} janelas do simulador abertas. Deixe só uma aberta. Para abrir:");
-            Console.WriteLine("  dotnet run --project src/LoLRemote.Simulator -- --fast");
+                ? $"ERRO: janela \"{TargetTitle}\" do processo {TargetProcess} não encontrada."
+                : $"ERRO: {candidates.Count} janelas \"{TargetTitle}\" abertas. Deixe só uma.");
+            Console.WriteLine("Simulador: dotnet run --project src/LoLRemote.Simulator -- --fast");
+            foreach (var hint in TargetWindow.ListContaining("League").Concat(TargetWindow.ListContaining("LoL")).Distinct())
+            {
+                Console.WriteLine($"  janela visível: {hint}");
+            }
             return 3;
         }
 

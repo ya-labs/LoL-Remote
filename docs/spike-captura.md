@@ -32,6 +32,19 @@ Critérios da v0.1 (roadmap, item 3):
 
 O programa usa DPI por monitor, então tamanhos e posições são pixels físicos.
 
+## Cliente real (somente captura)
+
+Para validar a captura no League Client sem ler a API e sem clicar (decisão
+D7), com o cliente aberto:
+
+```powershell
+dotnet run --project spikes/LoLRemote.CaptureSpike -- --title "League of Legends" --process LeagueClientUx
+```
+
+Se a janela não for encontrada, o programa lista as janelas visíveis com
+"League" no título e o processo de cada uma, para ajustar os argumentos.
+Pule a etapa "fechada" (P) se não quiser fechar o cliente.
+
 ## Como executar
 
 Com o simulador aberto, em outro terminal na raiz do repositório:

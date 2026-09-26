@@ -11,6 +11,23 @@ Status possíveis: **vigente**, **substituída** (com link para a nova) ou
 
 ---
 
+## D7 — Registrar o projeto na Riot antes de usar o cliente real
+
+- **Data:** 26/09/2026
+- **Decidido por:** Nícolas
+- **Status:** vigente
+- **Contexto:** os Termos da Riot proíbem programas de terceiros não
+  autorizados, e a política de desenvolvedores exige registro de quem usa a
+  League Client API (não suportada oficialmente). Há ainda um risco técnico: o
+  Vanguard pode descartar cliques simulados em jogos protegidos, e não se sabe
+  se isso afeta o cliente do League.
+- **Decisão:** registrar o LoL Remote no Developer Portal, descrevendo o uso
+  somente leitura da fase ([texto](registro-riot.md)). Até lá, com o cliente
+  real, testar apenas a captura de imagem, sem ler a API e sem clicar.
+- **Consequência:** a leitura da fase e os cliques no cliente real (item 8 da
+  v0.1) esperam o envio do registro. Se o Vanguard bloquear os cliques, a
+  estratégia de input precisa ser revista.
+
 ## D6 — Transporte de vídeo com WebRTC H.264
 
 - **Data:** 26/09/2026

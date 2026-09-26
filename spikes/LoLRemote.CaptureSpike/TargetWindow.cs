@@ -49,6 +49,25 @@ internal static unsafe class TargetWindow
         return matches;
     }
 
+    /// <summary>Janelas visíveis cujo título contém o texto, para ajudar a achar o alvo.</summary>
+    public static List<string> ListContaining(string text)
+    {
+        var result = new List<string>();
+        foreach (var hwnd in EnumerateTopLevel())
+        {
+            var title = GetTitle(hwnd);
+            if (!NativeMethods.IsWindowVisible(hwnd) || !title.Contains(text, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            _ = NativeMethods.GetWindowThreadProcessId(hwnd, out var pid);
+            result.Add($"\"{title}\" (processo {GetProcessName(pid) ?? "?"})");
+        }
+
+        return result;
+    }
+
     public static WindowSnapshot Snapshot(nint hwnd)
     {
         if (!NativeMethods.IsWindow(hwnd))

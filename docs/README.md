@@ -15,6 +15,7 @@ fica no checklist do roadmap e no changelog.
 - [Spike de WebRTC](spike-webrtc.md): vídeo H.264 do PC para o iPhone.
 - [Contratos](contratos.md): API HTTP, mensagens de controle e regras de input.
 - [Agente](agente.md): como rodar o agente e testar o controle pelo iPhone.
+- [Registro na Riot](registro-riot.md): políticas da Riot e texto do registro.
 - [Guia da documentação](guia-da-documentacao.md): onde e como registrar
   conhecimento.
 - [Guia para IA](guia-de-documentacao-para-ia.md): leitura e atualização segura
