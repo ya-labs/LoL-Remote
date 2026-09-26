@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build e testes (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restaurar
+        run: dotnet restore LoLRemote.slnx
+
+      # Directory.Build.props define TreatWarningsAsErrors=true: aviso quebra o build.
+      - name: Compilar
+        run: dotnet build LoLRemote.slnx --configuration Release --no-restore
+
+      - name: Testar
+        run: >-
+          dotnet test LoLRemote.slnx --configuration Release --no-build
+          --logger trx --results-directory TestResults
+
+      - name: Publicar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx
+          if-no-files-found: ignore

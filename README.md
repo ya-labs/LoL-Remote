@@ -10,9 +10,11 @@ um bot: ele não escolhe campeão, bane, altera runas ou joga automaticamente.
 
 ## Estado atual
 
-O projeto está na fundação de produto, arquitetura e aprendizagem. Ainda não há
-código executável. O primeiro incremento será uma prova de conceito de captura,
-transmissão e clique remoto em rede privada.
+O projeto iniciou a v0.1. Existe um simulador do fluxo do League Client
+(`src/LoLRemote.Simulator`) com núcleo testável
+(`src/LoLRemote.Simulator.Core`), descrito em
+[`docs/simulador.md`](docs/simulador.md). O aplicativo WPF já foi executado no
+Windows. Captura, transporte e input remoto ainda não existem.
 
 ## Objetivo da v1.0
 
@@ -45,47 +47,44 @@ de compatibilidade, desempenho e licença.
 
 ## Como executar
 
-Ainda não há aplicação executável. Quando a primeira implementação existir,
-esta seção deverá conter os pré-requisitos, comandos e limitações verificados.
-Não documente comandos futuros como se já funcionassem.
+Somente o simulador existe. Pré-requisitos, comandos e o status de validação
+estão em [`docs/simulador.md`](docs/simulador.md). Não documente comandos
+futuros como se já funcionassem.
 
 ## Aprendizagem e colaboração
 
-Este projeto adota o modo de colaboração `study` do YABook. Nícolas escreverá o
-código para aprender C#, .NET, React e as tecnologias envolvidas. A IA deve:
+Este projeto adota o modo de colaboração `work` do YABook, por decisão de
+Nícolas em 25/09/2026 (antes: `study`). A IA pode implementar funcionalidades
+completas e deve:
 
-- explicar os fundamentos conforme surgirem no trabalho real;
-- propor passos pequenos e exercícios úteis;
-- revisar e depurar o código escrito pelo estudante;
-- evitar entregar implementações completas sem mudança explícita para `work` ou
-  `prod`;
-- relacionar cada conceito ao problema concreto do LoL Remote.
+- explicar as decisões técnicas relevantes junto da entrega;
+- manter mudanças pequenas e registradas no changelog;
+- declarar o que foi e o que não foi validado;
+- deixar Nícolas revisar e aprovar antes de qualquer mutação Git.
 
-Não existe uma trilha teórica separada obrigatória: o estudo acompanha as
-necessidades de cada issue.
+O objetivo de aprendizagem continua: explicações acompanham o código entregue.
 
 ## Organização do trabalho
 
-- Repositório: `ya-labs/LoL-Remote`.
-- GitHub Project: [YA LABS Project #4](https://github.com/orgs/ya-labs/projects/4).
-- Responsável padrão: [`nicolasmacardoso`](https://github.com/nicolasmacardoso).
-- Milestones: `v0.1` a `v0.7` e `v1.0`, sem epic.
-- `Size`: campo do Project com valores de `1` a `5`; não é label.
-- Fluxo: uma issue por branch e Pull Request, com rastreabilidade entre os
-  artefatos.
+Desde 25/09/2026 o desenvolvimento acontece direto na branch `main`, sem issues,
+branches de funcionalidade ou Pull Requests (veja a
+[decisão D2](docs/decisoes.md)). A rastreabilidade fica no próprio repositório:
 
-Labels planejadas:
+- [`CHANGELOG.md`](CHANGELOG.md): o que mudou, em linguagem simples;
+- [`docs/decisoes.md`](docs/decisoes.md): decisões tomadas, com data e motivo;
+- [`docs/roadmap.md`](docs/roadmap.md): checklist do que já foi entregue;
+- `docs/adr/`: decisões técnicas maiores, quando surgirem;
+- histórico de commits em Conventional Commits, em português;
+- tags `v0.1` a `v1.0` marcando versões testadas e aprovadas.
 
-- tipo: `type: feature`, `type: bug`, `type: spike`, `type: docs`, `type: chore`;
-- área: `area: desktop`, `area: mobile`, `area: capture`, `area: transport`,
-  `area: input`, `area: league-state`, `area: notifications`, `area: security`,
-  `area: diagnostics`, `area: distribution`;
-- plataforma: `platform: windows`, `platform: ios`, `platform: tailscale`;
-- prioridade: `priority: p0` a `priority: p3`;
-- risco: `risk: high`, `risk: medium`, `risk: low`.
+Papéis: a IA desenvolve, documenta e sugere a mensagem de commit ao fim de cada
+checkpoint; Nícolas testa, decide e faz o commit e o push. O CI do GitHub
+Actions compila e testa cada push na `main`.
 
-O projeto usa o [YABook](https://github.com/ya-labs/Handbook) para planejamento,
-execução segura, documentação e artefatos GitHub.
+Issues continuam disponíveis para registrar bugs ou pedidos, mas são opcionais.
+O repositório é `ya-labs/LoL-Remote`, e o
+[YABook](https://github.com/ya-labs/Handbook) segue como referência de método,
+documentação e execução segura.
 
 ## Documentação
 

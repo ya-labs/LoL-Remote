@@ -2,17 +2,19 @@
 
 ## Princípio
 
-O projeto é desenvolvido como aprendizagem prática. Contribuições devem manter
-o código compreensível, revisável e ligado a um resultado concreto.
+A IA desenvolve e documenta; Nícolas testa, decide e faz os commits. O código
+deve continuar compreensível, testado e ligado a um resultado concreto.
 
 ## Fluxo
 
-1. Escolha ou crie uma issue aprovada no milestone correto.
-2. Confirme aceite, dependências, labels, responsável e `Size` no Project #4.
-3. Crie uma branch ligada à issue no formato `numero-descricao-curta`.
-4. Faça mudanças pequenas e inclua testes proporcionais ao risco.
-5. Atualize documentação estável quando necessário.
-6. Abra Pull Request com vínculo à issue e instruções de teste.
+1. Trabalhe direto na `main`, um checkpoint por vez (decisão D2 em
+   [`docs/decisoes.md`](docs/decisoes.md)).
+2. Faça mudanças pequenas, com testes proporcionais ao risco.
+3. Atualize `CHANGELOG.md`, o checklist de `docs/roadmap.md` e, se houver
+   decisão, `docs/decisoes.md`.
+4. Rode build e testes (veja [`docs/simulador.md`](docs/simulador.md)).
+5. Faça o commit antes de iniciar o próximo checkpoint e envie com `git push`.
+6. Confirme que o CI do GitHub Actions passou.
 
 Use Conventional Commits em português, por exemplo:
 
@@ -22,16 +24,13 @@ test: valida conversão de coordenadas normalizadas
 docs: registra decisão do transporte de vídeo
 ```
 
+Versões aprovadas recebem uma tag (`v0.1`, `v0.2`, ...).
+
 ## Qualidade mínima
 
-- Código formatado e análise estática sem erros.
+- Build sem avisos (`TreatWarningsAsErrors` está ativo).
 - Testes unitários e de integração relevantes passando.
 - Nenhum segredo ou dado sensível no diff.
 - `git diff --check` sem problemas.
-- Evidência manual para comportamentos dependentes de Windows ou iPhone.
-
-## Aprendizagem
-
-Antes de copiar uma solução, explique com suas palavras o problema, a escolha e
-como testá-la. A IA pode orientar, revisar e depurar, mas o objetivo é que o
-autor compreenda e escreva a implementação.
+- Evidência manual para comportamentos dependentes de Windows ou iPhone,
+  registrada no changelog ou no documento da área.

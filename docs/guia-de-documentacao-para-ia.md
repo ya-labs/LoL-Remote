@@ -6,7 +6,8 @@
 2. `README.md`.
 3. `docs/README.md`.
 4. Documento específico da área em análise.
-5. Issue, branch, código e testes relacionados.
+5. `docs/decisoes.md` e `CHANGELOG.md`.
+6. Código e testes relacionados.
 
 ## Como atualizar
 
@@ -18,18 +19,19 @@
 - Não registre credenciais, tokens, endereços privados ou dados de testadores.
 - Após editar, valide links, Markdown, codificação e `git diff --check`.
 
-## Modo de estudo
+## Modo de trabalho
 
-A documentação deve ajudar Nícolas a compreender o sistema que ele próprio
-está construindo. Explique o motivo técnico quando ele alterar uma decisão, mas
-evite textos teóricos sem aplicação imediata.
+A IA implementa e documenta; Nícolas testa e decide sem acompanhar os detalhes
+técnicos. Por isso a documentação precisa explicar o que existe e por quê em
+linguagem acessível.
 
 Ao trabalhar em código:
 
-- ensine o conceito necessário para a etapa;
-- proponha uma implementação pequena para o estudante escrever;
-- revise o resultado com evidências;
-- registre apenas aprendizados que se tornaram decisões ou práticas estáveis.
+- registre no `CHANGELOG.md` o que mudou e como foi validado;
+- registre em `docs/decisoes.md` toda escolha feita por Nícolas ou que mude o
+  produto;
+- marque no roadmap o que foi entregue;
+- não apresente como validado o que não foi executado.
 
 ## Limites
 

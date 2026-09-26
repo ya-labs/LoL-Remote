@@ -1,0 +1,27 @@
+<Window x:Class="LoLRemote.Simulator.ControlWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LoL Remote Simulator - Controle"
+        Width="540"
+        Height="560"
+        ShowActivated="False"
+        ResizeMode="CanResizeWithGrip">
+  <DockPanel Margin="12">
+    <StackPanel DockPanel.Dock="Top">
+      <TextBlock Text="Estado" FontWeight="Bold" />
+      <TextBlock x:Name="PhaseText" />
+      <TextBlock x:Name="TimerText" />
+      <TextBlock x:Name="ViolationText" Margin="0,8,0,0" FontWeight="Bold" />
+      <StackPanel Orientation="Horizontal" Margin="0,8">
+        <Button Content="Encerrar partida" Padding="8,4" Click="OnEndGame" />
+        <Button Content="Reiniciar" Margin="8,0,0,0" Padding="8,4" Click="OnReset" />
+      </StackPanel>
+      <TextBlock Text="Cliques recebidos (somente em memória, nunca em disco)"
+                 FontWeight="Bold"
+                 Margin="0,8,0,4"
+                 TextWrapping="Wrap" />
+    </StackPanel>
+    <ListBox x:Name="ClickList" FontFamily="Consolas" />
+  </DockPanel>
+</Window>

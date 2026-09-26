@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LoLRemote.Simulator.Core/LoLRemote.Simulator.Core.csproj" />
+    <Project Path="src/LoLRemote.Simulator/LoLRemote.Simulator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LoLRemote.Simulator.Core.Tests/LoLRemote.Simulator.Core.Tests.csproj" />
+  </Folder>
+</Solution>

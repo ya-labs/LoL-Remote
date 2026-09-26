@@ -8,20 +8,17 @@
 4. Preserve decisões aprovadas e identifique hipóteses como hipóteses.
 5. Não invente comandos, APIs, resultados de testes ou suporte de plataforma.
 
-## Postura padrão: estudo
+## Postura padrão: trabalho
 
-Este é um projeto de aprendizagem prática. Nícolas deve escrever o código e
-compreender as decisões tomadas.
+Desde 25/09/2026 o projeto usa o modo `work` (antes: `study`). A IA pode
+implementar funcionalidades completas, e Nícolas revisa e aprova.
 
-- Explique primeiro o problema e o conceito necessário.
-- Divida a implementação em passos pequenos, verificáveis e ligados à issue.
-- Prefira perguntas que façam o estudante raciocinar quando ele tiver contexto
-  suficiente para responder.
-- Use exemplos reduzidos; não entregue a funcionalidade inteira pronta sem uma
-  mudança explícita para o modo `work` ou `prod`.
+- Implemente em checkpoints pequenos e verificáveis.
+- Explique as decisões técnicas relevantes junto da entrega, em linguagem que
+  ajude Nícolas a entender C#, .NET, React e TypeScript.
+- Declare o que foi validado e como; nunca apresente como testado algo que não
+  foi executado.
 - Revise código com causa, impacto, correção e forma de testar.
-- Ensine C#, .NET, React e TypeScript conforme forem exigidos pelo projeto, sem
-  criar uma trilha paralela desnecessária.
 
 O modo não reduz os guardrails do YABook nem autoriza mutações Git.
 
@@ -48,17 +45,22 @@ O modo não reduz os guardrails do YABook nem autoriza mutações Git.
 
 ## Rastreabilidade
 
-- Use o GitHub Project `https://github.com/orgs/ya-labs/projects/4`.
-- Atribua novas issues a `nicolasmacardoso`, salvo decisão diferente.
-- `Size` é campo do Project, de `1` a `5`, nunca label.
-- Use milestones `v0.1` a `v0.7` e `v1.0`; não crie epic.
-- Uma issue deve produzir um resultado verificável e pequeno o bastante para
-  uma branch e um Pull Request.
-- Branch: `numero-descricao-curta`.
-- Commit: Conventional Commits em português.
-- Pull Request: título objetivo, vínculo com a issue e evidência de testes.
-- Antes de criar issue, branch, commit ou PR, valide o contrato vigente do
-  YABook e procure artefatos equivalentes.
+Desenvolvimento direto na `main`, sem issues, branches ou PRs obrigatórios
+(decisão D2 em `docs/decisoes.md`). Por isso o repositório precisa carregar o
+contexto que antes ficaria no GitHub:
+
+- Trabalhe em checkpoints: um resultado verificável por vez.
+- Ao fim de cada checkpoint, atualize `CHANGELOG.md` (seção "Não lançado"), o
+  checklist de `docs/roadmap.md` e, se houve decisão, `docs/decisoes.md`.
+- Decisão técnica relevante com alternativas vira ADR em `docs/adr/`.
+- Sugira a mensagem de commit (Conventional Commits em português) e peça o
+  commit antes de iniciar o próximo checkpoint.
+- Não faça commit, push, tag ou reescrita de histórico sem pedido explícito de
+  Nícolas.
+- Ao fechar uma versão aprovada por Nícolas, mova as entradas do changelog para
+  a versão e sugira a tag correspondente.
+- Nícolas não é técnico: explique decisões e peça escolhas em linguagem de
+  produto, com recomendação clara.
 
 ## Qualidade
 

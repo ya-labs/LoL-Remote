@@ -35,7 +35,8 @@ Um canal privado definitivo deverá ser publicado antes de ampliar o beta.
 
 ## Limitações conhecidas da fundação
 
-- Ainda não existe implementação para auditoria.
+- Ainda não existe implementação do agente para auditoria; somente o
+  simulador, que não captura nem injeta input.
 - A League Client API não é oficialmente suportada para terceiros.
 - Binários do beta não terão assinatura paga; checksums serão obrigatórios.
 - Sem serviço externo, não há alerta proativo quando o próprio PC fica offline.

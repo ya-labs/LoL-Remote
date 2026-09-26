@@ -10,10 +10,13 @@ testar ou evoluir o LoL Remote.
 - `README.md`: objetivo, estado atual, stack e caminho inicial.
 - `docs/visao-do-produto.md`: problema, público, escopo e critérios do produto.
 - `docs/arquitetura.md`: componentes, limites e decisões técnicas vigentes.
-- `docs/roadmap.md`: resultados esperados por versão, sem duplicar issues.
+- `docs/roadmap.md`: resultados esperados por versão, com checklist do que
+  já foi entregue.
+- `docs/decisoes.md`: toda decisão tomada, com data, motivo e consequência.
 - ADR futuro: decisão arquitetural relevante, alternativas e consequências.
-- Issue: trabalho operacional, aceite, dependências e evidências.
-- Pull Request: o que foi entregue e como foi validado.
+- `CHANGELOG.md`: o que foi entregue e como foi validado, por versão.
+- Commit: mudança pontual, em Conventional Commits.
+- Issue: opcional, para registrar bug ou pedido.
 
 ## Regras de escrita
 
