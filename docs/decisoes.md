@@ -11,6 +11,20 @@ Status possíveis: **vigente**, **substituída** (com link para a nova) ou
 
 ---
 
+## D6 — Transporte de vídeo com WebRTC H.264
+
+- **Data:** 26/09/2026
+- **Decidido por:** IA, com base no spike executado por Nícolas
+- **Status:** vigente para a v0.1
+- **Contexto:** o item 4 da v0.1 pedia validar WebRTC H.264 entre .NET e o
+  Safari do iPhone pela Tailscale.
+- **Decisão:** SIPSorcery + FFmpeg (H.264), conforme o
+  [ADR 0002](adr/0002-transporte-de-video-webrtc-h264.md). p95 de 44 ms no
+  Wi-Fi e 62 ms no 4G/5G em conexão direta.
+- **Consequência:** licenças (SIPSorcery e FFmpeg com libx264) precisam de
+  decisão de Nícolas antes do beta; comportamento com perdas e via DERP ainda
+  precisa de teste.
+
 ## D5 — Captura de janela com Windows.Graphics.Capture
 
 - **Data:** 26/09/2026

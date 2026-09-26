@@ -28,7 +28,12 @@ internal sealed class VideoStreamer : IAsyncDisposable
     private const uint Black = 0xFF000000;
 
     private readonly FrameSource _source;
-    private readonly FFmpegVideoEncoder _encoder = new();
+    // Quadro-chave a cada 15 quadros (1 s): após perda de pacotes, o vídeo se
+    // recupera em no máximo 1 s mesmo sem pedido explícito do iPhone.
+    private readonly FFmpegVideoEncoder _encoder = new(new Dictionary<string, string>
+    {
+        ["x264-params"] = "keyint=15:min-keyint=15:scenecut=0",
+    });
     private readonly uint[] _output = new uint[Width * Height];
     private readonly byte[] _outputBytes = new byte[Width * Height * 4];
     private readonly CancellationTokenSource _stop = new();
@@ -41,6 +46,8 @@ internal sealed class VideoStreamer : IAsyncDisposable
     private long _framesSent;
     private long _bytesSent;
     private long _encodeMicros;
+    private long _keyFramesRequested;
+    private long _lastKeyFrameRequestMs = long.MinValue / 2;
 
     public VideoStreamer(FrameSource source)
     {
@@ -62,6 +69,23 @@ internal sealed class VideoStreamer : IAsyncDisposable
     }
 
     public string? LastError { get; private set; }
+
+    /// <summary>Quadros-chave pedidos pelo iPhone (PLI/FIR) e atendidos.</summary>
+    public long KeyFramesRequested => Interlocked.Read(ref _keyFramesRequested);
+
+    /// <summary>Atende pedido de quadro-chave, no máximo um a cada 300 ms.</summary>
+    public void RequestKeyFrame()
+    {
+        var now = ServerClock.NowMs;
+        var last = Interlocked.Read(ref _lastKeyFrameRequestMs);
+        if (now - last < 300 || Interlocked.CompareExchange(ref _lastKeyFrameRequestMs, now, last) != last)
+        {
+            return;
+        }
+
+        Interlocked.Increment(ref _keyFramesRequested);
+        _encoder.ForceKeyFrame();
+    }
 
     public void Start() => _loop = Task.Run(() => RunAsync(_stop.Token));
 

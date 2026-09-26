@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using LoLRemote.CaptureSpike;
 using LoLRemote.WebRtcSpike;
 using SIPSorcery.Net;
@@ -52,6 +53,7 @@ if (candidates.Count != 1)
 
 // 3. Rede: mídia só pela interface Tailscale; sem Tailscale, só local.
 var tailscale = SpikeEnvironment.FindTailscaleAddress();
+var tailscalePath = new TailscalePathMonitor();
 var mediaAddress = tailscale ?? IPAddress.Loopback;
 Console.WriteLine(tailscale is null
     ? "AVISO: Tailscale não encontrado. A mídia fica restrita a este PC (127.0.0.1)."
@@ -108,7 +110,8 @@ app.MapPost("/offer", async (HttpRequest request) =>
 
     await peer.setLocalDescription(answer).ConfigureAwait(false);
     Console.WriteLine("Nova conexão negociada.");
-    return Results.Text(peer.localDescription?.sdp?.ToString() ?? answer.sdp, "application/sdp");
+    var answerSdp = peer.localDescription?.sdp?.ToString() ?? answer.sdp;
+    return Results.Text(AddPictureLossFeedback(answerSdp), "application/sdp");
 });
 
 app.MapPost("/stats", async (HttpRequest request) =>
@@ -144,6 +147,8 @@ app.MapPost("/stats", async (HttpRequest request) =>
         kbSent = streamer.BytesSent / 1024,
         encodeMs = Math.Round(streamer.AverageEncodeMs, 1),
         windowClosed = source.Closed,
+        keyFramesRequested = streamer.KeyFramesRequested,
+        tailscale = tailscalePath.Describe(),
         client = stats,
     });
     lock (statsLock)
@@ -153,7 +158,8 @@ app.MapPost("/stats", async (HttpRequest request) =>
 
     Console.WriteLine(
         $"[{Text(stats, "scenario")}] latência p50 {Text(stats, "latencyP50")} ms, p95 {Text(stats, "latencyP95")} ms, " +
-        $"{Text(stats, "fps")} fps, {Text(stats, "codec")}, conexão {Text(stats, "localType")}/{Text(stats, "remoteType")}");
+        $"{Text(stats, "fps")} fps, perdidos {Text(stats, "packetsLost")}, congelamentos {Text(stats, "freezeCount")}, " +
+        $"Tailscale: {tailscalePath.Describe()}");
     return Results.NoContent();
 });
 
@@ -167,13 +173,31 @@ return 0;
 
 static RTCPeerConnection CreatePeer(IPAddress bindAddress, VideoStreamer streamer)
 {
-    var peer = new RTCPeerConnection(new RTCConfiguration { X_BindAddress = bindAddress });
+    var peer = new RTCPeerConnection(new RTCConfiguration
+    {
+        X_BindAddress = bindAddress,
+        X_UseRtpFeedbackProfile = true,
+    });
     var h264 = new VideoFormat(
         VideoCodecsEnum.H264,
         100,
         VideoFormat.DEFAULT_CLOCK_RATE,
         "packetization-mode=1;profile-level-id=42e01f");
     peer.addTrack(new MediaStreamTrack(new List<VideoFormat> { h264 }, MediaStreamStatusEnum.SendOnly));
+
+    // O iPhone pede um quadro-chave (PLI) quando perde pacotes; sem isso a
+    // imagem congela até o próximo quadro-chave periódico.
+    peer.OnReceiveReport += (_, media, report) =>
+    {
+        var header = report.Feedback?.Header;
+        if (media == SDPMediaTypesEnum.video
+            && header is not null
+            && header.PacketType == RTCPReportTypesEnum.PSFB
+            && header.PayloadFeedbackMessageType is PSFBFeedbackTypesEnum.PLI or PSFBFeedbackTypesEnum.FIR)
+        {
+            streamer.RequestKeyFrame();
+        }
+    };
 
     peer.onconnectionstatechange += state =>
     {
@@ -195,6 +219,24 @@ static RTCPeerConnection CreatePeer(IPAddress bindAddress, VideoStreamer streame
     };
 
     return peer;
+}
+
+// O SIPSorcery só anuncia transport-cc; sem "nack pli" o Safari não pede
+// quadros-chave. Acrescenta a linha para cada formato H.264 da resposta.
+static string AddPictureLossFeedback(string sdp)
+{
+    var result = new StringBuilder();
+    foreach (var line in sdp.Split("\r\n"))
+    {
+        result.Append(line).Append("\r\n");
+        var match = Regex.Match(line, @"^a=rtpmap:(\d+) H264/90000", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        if (match.Success && !sdp.Contains($"a=rtcp-fb:{match.Groups[1].Value} nack pli", StringComparison.Ordinal))
+        {
+            result.Append("a=rtcp-fb:").Append(match.Groups[1].Value).Append(" nack pli\r\n");
+        }
+    }
+
+    return result.ToString().TrimEnd('\r', '\n') + "\r\n";
 }
 
 static string Text(JsonElement element, string property) =>

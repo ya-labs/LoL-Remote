@@ -56,9 +56,53 @@ dotnet run --project spikes/LoLRemote.WebRtcSpike
 
 No iPhone, abra o endereço do Tailscale Serve no Safari e toque em Conectar.
 
+O spike grava a saída na pasta de onde foi executado. Rode a partir da raiz do
+repositório para usar `spike-output/` da raiz.
+
+## Rodada 1 (26/09/2026)
+
+Ambiente: Windows 11, iPhone com iOS/Safari 26.6.1, Tailscale nos dois. Vídeo
+H.264 1280x720 a 15 FPS, cerca de 100 kbit/s (tela quase estática).
+
+| Rede | Latência p50 | Latência p95 | RTT | Observações |
+|---|---|---|---|---|
+| Wi-Fi | 23 a 61 ms | 27 a 110 ms | ~5 ms | Estável, sem quadros descartados |
+| 4G/5G | 64 a 1.948 ms | até 2.722 ms | 36 a 5.765 ms | Travadas de vários segundos, 100 quadros descartados, 1 queda de conexão |
+
+Conclusões:
+
+- WebRTC H.264 do .NET para o Safari funciona: o codec negociado foi H.264 e a
+  decodificação levou ~6 ms por quadro.
+- No Wi-Fi a meta (p95 até 250 ms) foi atendida com folga.
+- No 4G/5G, entre as travadas a latência ficou em 64 a 93 ms, mas as travadas
+  derrubaram o p95 para segundos. Não foi possível saber se o caminho era
+  direto ou por relay (DERP).
+- Causa provável das travadas longas: o SIPSorcery não anuncia `nack pli`, então
+  o Safari não pede quadro-chave ao perder pacotes, e o quadro-chave periódico
+  vinha só a cada ~2 s.
+
+Ajustes para a rodada 2:
+
+- anunciar `nack pli` na resposta SDP e gerar quadro-chave quando o iPhone pedir;
+- quadro-chave periódico a cada 1 s;
+- pedir ao Safari o menor buffer de recepção possível;
+- registrar pacotes perdidos, congelamentos, buffer e se o Tailscale está em
+  conexão direta ou por relay.
+
+## Rodada 2 (26/09/2026)
+
+Com os ajustes acima. O Tailscale informou conexão direta nas duas redes.
+
+| Rede | Latência p50 | Latência p95 | RTT | Perdas | Buffer |
+|---|---|---|---|---|---|
+| Wi-Fi | 32 a 36 ms | 39 a 44 ms | 5 a 9 ms | nenhuma | 9 a 15 ms |
+| 4G/5G | 52 a 54 ms | 60 a 62 ms | 38 a 101 ms | nenhuma | 16 a 18 ms |
+
+Não houve pacote perdido nem pedido de quadro-chave, então o ajuste de PLI não
+foi exercitado nesta rodada. O teste em 4G/5G durou cerca de 35 s.
+
 ## Status
 
-- Compilação: verificada contra stubs das APIs de SIPSorcery e WinRT com as
-  regras de análise do projeto. **Ainda não compilada nem executada no
-  Windows.**
-- Resultado: pendente.
+Concluído para a v0.1. Decisão registrada no
+[ADR 0002](adr/0002-transporte-de-video-webrtc-h264.md), com as pendências de
+perdas, DERP, taxa adaptativa e licenças.

@@ -78,13 +78,10 @@ necessidade que justifique custo e operação.
 
 ## Mídia
 
-O primeiro spike validará WebRTC H.264 entre .NET e Safari no iPhone. A primeira
-candidata é SIPSorcery com pipeline compatível de H.264. Licença, distribuição,
-CPU, aceleração e dependências são critérios do spike.
-
-Se essa candidata falhar, avaliar um adaptador isolado sobre libdatachannel. Se
-as duas alternativas falharem nos critérios mínimos, interromper a v0.1 e
-replanejar em vez de esconder o problema com uma arquitetura improvisada.
+WebRTC H.264 com SIPSorcery e FFmpeg, validado no spike de 26/09/2026 e
+registrado no [ADR 0002](adr/0002-transporte-de-video-webrtc-h264.md). Licença
+e distribuição do FFmpeg, comportamento com perdas e caminho via DERP seguem
+como pendências do ADR.
 
 ## Autenticação e dados
 

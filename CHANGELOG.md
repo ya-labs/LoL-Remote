@@ -19,6 +19,7 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
   [`docs/spike-captura.md`](docs/spike-captura.md).
 - Relógio de pulsação no simulador, atualizado a cada 100 ms.
 - ADR 0001: captura de janela com Windows.Graphics.Capture.
+- ADR 0002: transporte de vídeo com WebRTC H.264 (SIPSorcery + FFmpeg).
 
 - Simulador do fluxo do League Client: janela que imita sala, fila, Ready
   Check, seleção de campeões e partida, para testar captura e cliques remotos
@@ -43,6 +44,9 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 - Texto do botão "ENCONTRAR PARTIDA" cortado no simulador.
 
 ### Validado
+
+- 26/09/2026, iPhone (Safari 26.6.1) via Tailscale direto: vídeo H.264
+  1280x720 a 15 FPS com latência p95 de 44 ms no Wi-Fi e 62 ms no 4G/5G.
 
 - 26/09/2026, Windows: spike de captura aprovado nos 6 critérios (janela
   coberta, redimensionada, outro monitor, minimizada, fechada e somente a

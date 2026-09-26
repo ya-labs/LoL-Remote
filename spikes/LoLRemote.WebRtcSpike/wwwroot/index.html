@@ -44,6 +44,9 @@
     <tr><td>RTT da rede</td><td id="rtt">-</td></tr>
     <tr><td>Decodificação média</td><td id="decode">-</td></tr>
     <tr><td>Quadros descartados</td><td id="dropped">-</td></tr>
+    <tr><td>Pacotes perdidos · pedidos de quadro-chave</td><td id="loss">-</td></tr>
+    <tr><td>Congelamentos (total)</td><td id="freezes">-</td></tr>
+    <tr><td>Buffer de recepção</td><td id="buffer">-</td></tr>
     <tr><td>Sincronia do relógio</td><td id="clock">-</td></tr>
   </table>
 
@@ -166,6 +169,11 @@
         localType: local ? local.candidateType : null,
         remoteType: remote ? remote.candidateType : null,
         protocol: local ? local.protocol : null,
+        packetsLost: inbound ? inbound.packetsLost : null,
+        pliCount: inbound ? inbound.pliCount : null,
+        freezeCount: inbound ? inbound.freezeCount : null,
+        freezeSeconds: inbound && inbound.totalFreezesDuration != null ? Math.round(inbound.totalFreezesDuration * 10) / 10 : null,
+        jitterBufferMs: inbound && inbound.jitterBufferEmittedCount ? Math.round(inbound.jitterBufferDelay / inbound.jitterBufferEmittedCount * 1000) : null,
         latencyP50: p50 != null ? Math.round(p50) : null,
         latencyP95: p95 != null ? Math.round(p95) : null,
         latencySamples: values.length,
@@ -182,6 +190,9 @@
       $('rtt').textContent = stats.rttMs != null ? `${stats.rttMs} ms` : '-';
       $('decode').textContent = stats.decodeMs != null ? `${stats.decodeMs} ms` : '-';
       $('dropped').textContent = stats.framesDropped ?? '-';
+      $('loss').textContent = `${stats.packetsLost ?? '-'} · ${stats.pliCount ?? '-'}`;
+      $('freezes').textContent = stats.freezeCount != null ? `${stats.freezeCount} (${stats.freezeSeconds ?? 0} s)` : '-';
+      $('buffer').textContent = stats.jitterBufferMs != null ? `${stats.jitterBufferMs} ms` : '-';
 
       fetch('stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(stats) })
         .catch(() => {});
@@ -196,6 +207,10 @@
         pc = new RTCPeerConnection();
         pc.addTransceiver('video', { direction: 'recvonly' });
         pc.ontrack = event => {
+          // Pede ao Safari o menor buffer possível (latência antes de suavidade), se suportado.
+          if (event.receiver && 'jitterBufferTarget' in event.receiver) {
+            try { event.receiver.jitterBufferTarget = 0; } catch (e) { /* não suportado */ }
+          }
           video.srcObject = event.streams[0] || new MediaStream([event.track]);
           video.play().catch(() => {});
           video.requestVideoFrameCallback(onFrame);
