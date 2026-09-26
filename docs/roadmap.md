@@ -81,7 +81,7 @@ bloqueio de gameplay começam na v0.1. A v0.6 consolida e audita o conjunto.
 3. [x] Validar captura de janela ocluída e em outro monitor (escalas
    diferentes pendentes para a v0.2).
 4. [x] Validar WebRTC H.264 entre .NET e Safari/iPhone por Tailscale.
-5. [ ] Definir OpenAPI, schemas e erros.
+5. [x] Definir OpenAPI, schemas e erros ([contratos](contratos.md)).
 6. [ ] Implementar transformação de toque e `SendInput` no simulador.
 7. [x] Medir latência e registrar a decisão de transporte (vídeo; a latência
    do toque será medida junto com o input).

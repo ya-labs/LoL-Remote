@@ -8,7 +8,7 @@ As regras para agentes deste repositório estão em `AGENTS.md`:
 
 ```powershell
 dotnet build LoLRemote.slnx
-dotnet test tests/LoLRemote.Simulator.Core.Tests
+dotnet test LoLRemote.slnx
 dotnet run --project src/LoLRemote.Simulator -- --fast
 dotnet run --project spikes/LoLRemote.CaptureSpike
 dotnet run --project spikes/LoLRemote.WebRtcSpike

@@ -94,9 +94,11 @@ como pendências do ADR.
 
 ## Contratos
 
-OpenAPI será a fonte do HTTP. JSON Schema versionará sinalização e comandos em
-tempo real. Eventos de controle carregarão versão, sequência e timestamp, e
-receberão confirmação explícita.
+OpenAPI (`contracts/openapi.yaml`) é a fonte do HTTP e JSON Schema
+(`contracts/schemas/control-message.schema.json`) é a fonte das mensagens em
+tempo real, trocadas no canal de dados WebRTC "control". Eventos de controle
+carregam versão, sequência e horário, e recebem confirmação explícita. Detalhes
+e regras de validação em [`contratos.md`](contratos.md).
 
-Os contratos concretos serão definidos depois dos spikes de captura e WebRTC,
-antes da implementação integrada da v0.1.
+As regras sem dependência de Windows (conversão de coordenadas, bloqueio de
+input e protocolo) ficam em `src/LoLRemote.Agent.Core`, com testes.

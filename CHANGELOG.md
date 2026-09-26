@@ -7,6 +7,14 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Adicionado
 
+- Contratos da comunicação celular ↔ PC: API HTTP (`contracts/openapi.yaml`),
+  mensagens de controle (`contracts/schemas/control-message.schema.json`) e
+  exemplos válidos e inválidos. Explicação em [`docs/contratos.md`](docs/contratos.md).
+- Núcleo do agente (`src/LoLRemote.Agent.Core`): converte o toque no vídeo em
+  ponto da janela (descontando faixas pretas e barra de título), bloqueia input
+  fora das telas do cliente e recusa comandos repetidos, antigos, em excesso ou
+  com formato errado. Testes automáticos conferem o código contra os contratos.
+
 - Spike de WebRTC (`spikes/LoLRemote.WebRtcSpike`): transmite a janela do
   simulador para o Safari do iPhone em H.264 e mede a latência automaticamente
   com um código de barras de horário no vídeo. Detalhes em
