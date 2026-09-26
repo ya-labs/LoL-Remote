@@ -11,6 +11,17 @@ Status possíveis: **vigente**, **substituída** (com link para a nova) ou
 
 ---
 
+## D5 — Captura de janela com Windows.Graphics.Capture
+
+- **Data:** 26/09/2026
+- **Decidido por:** IA, com base no spike executado por Nícolas
+- **Status:** vigente
+- **Contexto:** o item 3 da v0.1 pedia validar a captura exclusiva da janela.
+- **Decisão:** usar Windows.Graphics.Capture sobre o `HWND`, nunca sobre o
+  monitor, com as regras do [ADR 0001](adr/0001-captura-de-janela.md).
+- **Consequência:** escalas diferentes entre monitores ficam para a v0.2; o
+  próximo passo é o spike de WebRTC.
+
 ## D4 — CI no GitHub Actions e Claude Code no Windows
 
 - **Data:** 25/09/2026

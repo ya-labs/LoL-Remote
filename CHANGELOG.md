@@ -7,6 +7,14 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Adicionado
 
+- Spike de captura de janela (`spikes/LoLRemote.CaptureSpike`): encontra só a
+  janela do simulador, captura com a API de captura do Windows e guia um teste
+  em 7 etapas (visível, coberta, redimensionada, outro monitor, minimizada,
+  restaurada, fechada), gerando relatório e imagens. Detalhes em
+  [`docs/spike-captura.md`](docs/spike-captura.md).
+- Relógio de pulsação no simulador, atualizado a cada 100 ms.
+- ADR 0001: captura de janela com Windows.Graphics.Capture.
+
 - Simulador do fluxo do League Client: janela que imita sala, fila, Ready
   Check, seleção de campeões e partida, para testar captura e cliques remotos
   sem usar o jogo real. Conta como "violação" qualquer clique durante a
@@ -25,7 +33,15 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 - Desenvolvimento direto na `main`, sem issues, branches e PRs obrigatórios;
   roadmap passa a ser checklist (D2).
 
+### Corrigido
+
+- Texto do botão "ENCONTRAR PARTIDA" cortado no simulador.
+
 ### Validado
+
+- 26/09/2026, Windows: spike de captura aprovado nos 6 critérios (janela
+  coberta, redimensionada, outro monitor, minimizada, fechada e somente a
+  janela). Escalas diferentes entre monitores ainda não testadas.
 
 - 25/09/2026, Windows: `dotnet test` com 42 testes passando; simulador
   executado com `--fast` e fluxo completo percorrido manualmente.

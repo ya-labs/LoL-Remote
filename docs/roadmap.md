@@ -12,7 +12,7 @@ O roadmap registra resultados de produto e marca o que já foi entregue
 ## v0.1 — Prova de conceito
 
 - [x] simulador seguro do fluxo do League;
-- [ ] descoberta e captura exclusiva de uma janela;
+- [x] descoberta e captura exclusiva de uma janela ([ADR 0001](adr/0001-captura-de-janela.md));
 - [ ] spike WebRTC H.264 no iPhone;
 - [ ] toque normalizado e clique remoto controlado;
 - [ ] medição inicial de latência e ADR de transporte.
@@ -78,7 +78,8 @@ bloqueio de gameplay começam na v0.1. A v0.6 consolida e audita o conjunto.
 
 1. [x] Inicializar documentação e governança.
 2. [x] Criar simulador do fluxo do League (WPF).
-3. [ ] Validar captura de janela ocluída e em outro monitor.
+3. [x] Validar captura de janela ocluída e em outro monitor (escalas
+   diferentes pendentes para a v0.2).
 4. [ ] Validar WebRTC H.264 entre .NET e Safari/iPhone por Tailscale.
 5. [ ] Definir OpenAPI, schemas e erros.
 6. [ ] Implementar transformação de toque e `SendInput` no simulador.

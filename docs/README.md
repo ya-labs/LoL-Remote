@@ -11,6 +11,7 @@ fica no checklist do roadmap e no changelog.
 - [Roadmap](roadmap.md): evolução incremental até o beta v1.0.
 - [Simulador](simulador.md): alvo seguro para desenvolver captura e input.
 - [Decisões](decisoes.md): registro das decisões com data e motivo.
+- [Spike de captura](spike-captura.md): teste da captura de janela.
 - [Guia da documentação](guia-da-documentacao.md): onde e como registrar
   conhecimento.
 - [Guia para IA](guia-de-documentacao-para-ia.md): leitura e atualização segura

@@ -58,6 +58,10 @@ finalização 10 s. O argumento `--fast` usa 2, 8, 12, 12 e 4 s.
 - **Histórico só em memória.** O simulador mostra as últimas 50 coordenadas
   recebidas para depuração, sem gravar em disco. A proibição de registrar
   coordenadas continua valendo para o agente.
+- **Relógio de pulsação.** O canto inferior direito mostra a hora com décimos
+  de segundo, atualizada a cada 100 ms. Assim a captura sempre recebe frames
+  novos, e dá para comparar a hora exibida no celular com a do PC para estimar
+  a latência.
 - **Tempo injetável.** O motor recebe um `TimeProvider`; os testes avançam o
   relógio manualmente, sem espera real.
 

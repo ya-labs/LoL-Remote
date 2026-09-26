@@ -63,7 +63,10 @@ necessidade que justifique custo e operação.
 ## Captura e input
 
 - Descobrir e validar o `HWND` do League Client.
-- Capturar com `Windows.Graphics.Capture`.
+- Capturar com `Windows.Graphics.Capture` sobre o `HWND`, conforme o
+  [ADR 0001](adr/0001-captura-de-janela.md).
+- Considerar que o frame inclui barra de título e bordas ao converter
+  coordenadas.
 - Nunca usar captura do monitor como fallback.
 - Converter coordenadas normalizadas considerando proporção, letterbox, DPI e
   tamanho atual da janela.

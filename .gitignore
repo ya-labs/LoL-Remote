@@ -5,6 +5,7 @@ obj/
 *.suo
 .vs/
 TestResults/
+spike-output/
 *.binlog
 
 # IDEs

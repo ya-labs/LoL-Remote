@@ -28,6 +28,18 @@ internal sealed partial class MainWindow : Window
     private readonly SimulatorEngine _engine;
     private readonly DispatcherTimer _timer;
     private readonly TextBlock _timerText = CenteredText(string.Empty, 32, Cream, FontWeights.SemiBold);
+
+    // Relógio de pulsação: muda a cada 100 ms para que a captura sempre receba
+    // frames novos, e permite comparar a hora exibida no celular com a do PC.
+    private readonly TextBlock _clockText = new()
+    {
+        Width = 170,
+        TextAlignment = TextAlignment.Right,
+        FontSize = 14,
+        FontFamily = new FontFamily("Consolas"),
+        Foreground = Muted,
+        IsHitTestVisible = false,
+    };
     private ControlWindow? _control;
 
     public MainWindow(SimulatorEngine engine)
@@ -35,6 +47,10 @@ internal sealed partial class MainWindow : Window
         InitializeComponent();
         _engine = engine;
         _engine.StateChanged += (_, _) => Render();
+
+        Canvas.SetLeft(_clockText, SimLayout.ReferenceWidth - 180);
+        Canvas.SetTop(_clockText, SimLayout.ReferenceHeight - 26);
+        Overlay.Children.Add(_clockText);
 
         PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
         Loaded += OnLoaded;
@@ -66,6 +82,7 @@ internal sealed partial class MainWindow : Window
     {
         _engine.Update();
         UpdateTimerText();
+        _clockText.Text = DateTime.Now.ToString("HH:mm:ss.f", CultureInfo.InvariantCulture);
         _control?.Refresh(includeLog: false);
     }
 
@@ -97,7 +114,7 @@ internal sealed partial class MainWindow : Window
             case SimPhase.Lobby:
                 AddText("SALA", 60, 40, Gold, FontWeights.Bold);
                 AddText("Fila simulada - nenhum dado do League é usado aqui", 260, 22, Cream);
-                AddRegionButton(RegionIds.FindMatch, "ENCONTRAR PARTIDA", enabled: true, fontSize: 24);
+                AddRegionButton(RegionIds.FindMatch, "ENCONTRAR PARTIDA", enabled: true, fontSize: 20);
                 break;
 
             case SimPhase.Matchmaking:
