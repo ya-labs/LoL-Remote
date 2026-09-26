@@ -55,4 +55,9 @@ reduz o risco, mas só uma resposta da Riot confirma o que é aceito.
 
 ## Estado
 
-- Texto preparado em 26/09/2026. Envio e resposta pendentes.
+- 26/09/2026: produto registrado por Nícolas como **Personal API Key** (uso
+  pessoal ou comunidade pequena e privada), com a descrição acima. A Riot
+  emitiu uma chave pessoal (20 requisições/s, 100 a cada 2 min).
+- A chave vale só para a API web da Riot, que o LoL Remote **não usa**. Ela não
+  deve ser colada em conversas nem gravada no repositório.
+- Nenhuma resposta da Riot sobre o uso da League Client API até agora.

@@ -27,6 +27,8 @@ Status possíveis: **vigente**, **substituída** (com link para a nova) ou
 - **Consequência:** a leitura da fase e os cliques no cliente real (item 8 da
   v0.1) esperam o envio do registro. Se o Vanguard bloquear os cliques, a
   estratégia de input precisa ser revista.
+- **Atualização (26/09/2026):** registro enviado como produto pessoal; ver
+  [registro-riot.md](registro-riot.md).
 
 ## D6 — Transporte de vídeo com WebRTC H.264
 

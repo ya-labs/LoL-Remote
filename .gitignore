@@ -17,3 +17,8 @@ agent-output/
 # OS
 Thumbs.db
 .DS_Store
+
+# Segredos locais (ex.: chave da API da Riot). Nunca versionar.
+.env
+*.secret
+secrets.json
