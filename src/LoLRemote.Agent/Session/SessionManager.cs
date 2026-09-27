@@ -201,8 +201,20 @@ internal sealed class SessionManager : IAsyncDisposable
     private void OnControlMessage(ActiveSession session, byte[] data)
     {
         if (data.Length > ControlMessageSerializer.MaxMessageLength
-            || !ControlMessageSerializer.TryParse(Encoding.UTF8.GetString(data), out var message)
-            || message is not TapMessage tap)
+            || !ControlMessageSerializer.TryParse(Encoding.UTF8.GetString(data), out var message))
+        {
+            return;
+        }
+
+        (long Sequence, string Kind)? command = message switch
+        {
+            TapMessage m => (m.Sequence, "Toque"),
+            ScrollMessage m => (m.Sequence, "Rolagem"),
+            TextMessage m => (m.Sequence, "Texto"),
+            KeyMessage m => (m.Sequence, "Tecla"),
+            _ => null,
+        };
+        if (command is not { } info)
         {
             return;
         }
@@ -210,13 +222,13 @@ internal sealed class SessionManager : IAsyncDisposable
         InputRejectReason? reason;
         lock (session.InputLock)
         {
-            reason = HandleTap(session, tap);
+            reason = Handle(session, message!);
         }
 
-        // Nunca registrar coordenadas: só a sequência e o resultado.
+        // Nunca registrar coordenadas nem texto: só o tipo, a sequência e o resultado.
         Console.WriteLine(reason is null
-            ? $"Toque #{tap.Sequence}: clique executado."
-            : $"Toque #{tap.Sequence}: recusado ({reason}).");
+            ? $"{info.Kind} #{info.Sequence}: executado."
+            : $"{info.Kind} #{info.Sequence}: recusado ({reason}).");
         if (reason == InputRejectReason.TargetObscured && _injector.LastDiagnostic is { } diagnostic)
         {
             Console.WriteLine($"  diagnóstico: {diagnostic}");
@@ -225,41 +237,70 @@ internal sealed class SessionManager : IAsyncDisposable
         Send(session, new InputAckMessage
         {
             Version = InputLimits.ProtocolVersion,
-            Sequence = tap.Sequence,
+            Sequence = info.Sequence,
             Status = reason is null ? AckStatus.Accepted : AckStatus.Rejected,
             Reason = reason,
         });
     }
 
-    private InputRejectReason? HandleTap(ActiveSession session, TapMessage tap)
+    private InputRejectReason? Handle(ActiveSession session, ControlMessage message)
     {
-        var layout = _streamer.LastLayout;
-        if (layout is null)
-        {
-            return InputRejectReason.CaptureStale;
-        }
-
         var target = _tracker.Target;
-        var command = new TapCommand(tap.Version, tap.Sequence, tap.SentAtMs, new(tap.X, tap.Y));
-        var decision = session.Validator.Validate(
-            command,
-            ServerClock.NowMs,
-            CurrentGate(),
-            layout,
-            target.Describe().ClientAreaInFrame);
-        if (!decision.Accepted)
-        {
-            return decision.Reason;
-        }
+        var now = ServerClock.NowMs;
+        var gate = CurrentGate();
 
-        return _injector.Click(target, decision.Point!.Value) switch
+        switch (message)
         {
-            InjectionResult.Clicked => null,
-            InjectionResult.TargetUnavailable => InputRejectReason.TargetUnavailable,
-            InjectionResult.TargetMinimized => InputRejectReason.TargetMinimized,
-            _ => InputRejectReason.TargetObscured,
-        };
+            case TapMessage tap:
+            {
+                if (_streamer.LastLayout is not { } layout)
+                {
+                    return InputRejectReason.CaptureStale;
+                }
+
+                var decision = session.Validator.Validate(
+                    new TapCommand(tap.Version, tap.Sequence, tap.SentAtMs, new(tap.X, tap.Y)),
+                    now, gate, layout, target.Describe().ClientAreaInFrame);
+                return decision.Accepted ? ToReason(_injector.Click(target, decision.Point!.Value)) : decision.Reason;
+            }
+
+            case ScrollMessage scroll:
+            {
+                if (_streamer.LastLayout is not { } layout)
+                {
+                    return InputRejectReason.CaptureStale;
+                }
+
+                var decision = session.Validator.Validate(
+                    new ScrollCommand(scroll.Version, scroll.Sequence, scroll.SentAtMs, new(scroll.X, scroll.Y), scroll.Notches),
+                    now, gate, layout, target.Describe().ClientAreaInFrame);
+                return decision.Accepted ? ToReason(_injector.Scroll(target, decision.Point!.Value, scroll.Notches)) : decision.Reason;
+            }
+
+            case TextMessage text:
+            {
+                var decision = session.Validator.Validate(new TextCommand(text.Version, text.Sequence, text.SentAtMs, text.Text), now, gate);
+                return decision.Accepted ? ToReason(_injector.TypeText(target, text.Text)) : decision.Reason;
+            }
+
+            case KeyMessage key:
+            {
+                var decision = session.Validator.Validate(new KeyCommand(key.Version, key.Sequence, key.SentAtMs, key.Key), now, gate);
+                return decision.Accepted ? ToReason(_injector.Press(target, key.Key)) : decision.Reason;
+            }
+
+            default:
+                return null;
+        }
     }
+
+    private static InputRejectReason? ToReason(InjectionResult result) => result switch
+    {
+        InjectionResult.Clicked => null,
+        InjectionResult.TargetUnavailable => InputRejectReason.TargetUnavailable,
+        InjectionResult.TargetMinimized => InputRejectReason.TargetMinimized,
+        _ => InputRejectReason.TargetObscured,
+    };
 
     private async Task StateLoopAsync(CancellationToken token)
     {

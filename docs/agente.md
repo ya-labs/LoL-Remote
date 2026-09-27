@@ -50,6 +50,31 @@ No iPhone, abra o endereço do Tailscale Serve e toque em Conectar.
 5. Mexa no mouse do PC: a faixa mostra "alguém está usando o PC" por 5 s.
 6. Minimize o simulador: toques recusados ("janela do jogo minimizada").
 
+## Rolagem e teclado (v0.2)
+
+- **Rolar:** arraste o dedo para cima ou para baixo sobre o vídeo. Cada 40 px
+  viram um "clique" da roda do mouse no ponto onde o dedo encostou. Um toque
+  sem arrastar continua sendo clique, agora enviado ao soltar o dedo.
+- **Digitar:** toque no campo do cliente (por exemplo, a busca de campeões),
+  escreva na caixa "Digitar no PC" e toque em Enviar. O texto entra onde estiver
+  o foco do cliente.
+- **Teclas:** botões Enter, Apagar, Esc e Tab.
+- Tudo passa pelas mesmas validações e bloqueios do toque. O console mostra só
+  "Texto #n: executado", nunca o conteúdo.
+- Depois de cada clique ou rolagem, o cursor do PC é levado para logo fora da
+  janela do cliente, para não abrir conteúdo de "passar o mouse" (como o vídeo
+  de habilidades do campeão). Se o cliente ocupar a tela inteira, não há onde
+  estacionar e o cursor fica no lugar.
+- Validado no cliente real em 27/09/2026: rolagem da lista de campeões, busca
+  por texto, Apagar e chat.
+
+Roteiro no cliente real (seleção de campeões de uma partida personalizada):
+
+1. Arraste na lista de campeões para rolar.
+2. Toque na busca, digite parte de um nome e envie; a lista deve filtrar.
+3. Use Apagar para corrigir e Esc para fechar algum menu aberto.
+4. No chat da seleção, toque no campo, envie um texto e toque em Enter.
+
 ## Cliente real (`--target league`)
 
 Em teste, conforme a decisão D7 (produto registrado na Riot).

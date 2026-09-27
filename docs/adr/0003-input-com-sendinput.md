@@ -45,5 +45,7 @@ como alternativa. Havia o risco de o Vanguard descartar input sintético.
 ## Consequências
 
 - O clique rouba o primeiro plano e move o cursor do PC; é aceitável porque o
-  controle só é liberado sem atividade local recente.
+  controle só é liberado sem atividade local recente. Depois de cada clique ou
+  rolagem o cursor é estacionado logo fora da janela, para o cliente não mostrar
+  conteúdo de "passar o mouse".
 - O bloqueio durante a partida foi confirmado no cliente real em 27/09/2026.

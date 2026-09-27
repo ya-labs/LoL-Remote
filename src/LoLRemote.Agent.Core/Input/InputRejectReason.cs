@@ -24,6 +24,15 @@ public enum InputRejectReason
     /// <summary>Coordenadas fora de 0..1 ou não numéricas.</summary>
     InvalidCoordinates,
 
+    /// <summary>Rolagem zero ou maior que o limite.</summary>
+    InvalidScroll,
+
+    /// <summary>Texto vazio, longo demais ou com caracteres de controle.</summary>
+    InvalidText,
+
+    /// <summary>Tecla fora da lista permitida.</summary>
+    InvalidKey,
+
     /// <summary>Toque na faixa preta do vídeo.</summary>
     Letterbox,
 

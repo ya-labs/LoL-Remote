@@ -25,6 +25,11 @@ internal static unsafe partial class NativeMethods
     public const uint MouseEventLeftUp = 0x0004;
     public const uint MouseEventVirtualDesk = 0x4000;
     public const uint MouseEventAbsolute = 0x8000;
+    public const uint MouseEventWheel = 0x0800;
+    public const int WheelDelta = 120;
+    public const uint InputKeyboard = 1;
+    public const uint KeyEventKeyUp = 0x0002;
+    public const uint KeyEventUnicode = 0x0004;
 
     public const uint Th32csSnapProcess = 0x2;
     public const int SwRestore = 9;
@@ -60,12 +65,33 @@ internal static unsafe partial class NativeMethods
         public nint ExtraInfo;
     }
 
-    /// <summary>INPUT do Win32 só com o membro de mouse (o maior da união).</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KeyboardInput
+    {
+        public ushort VirtualKey;
+        public ushort Scan;
+        public uint Flags;
+        public uint Time;
+        public nint ExtraInfo;
+    }
+
+    /// <summary>União do INPUT do Win32 (mouse é o maior membro).</summary>
+    [StructLayout(LayoutKind.Explicit)]
+    public struct InputUnion
+    {
+        [FieldOffset(0)]
+        public MouseInput Mouse;
+
+        [FieldOffset(0)]
+        public KeyboardInput Keyboard;
+    }
+
+    /// <summary>INPUT do Win32.</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct Input
     {
         public uint Type;
-        public MouseInput Mouse;
+        public InputUnion Data;
     }
 
     [StructLayout(LayoutKind.Sequential)]

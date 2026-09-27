@@ -26,11 +26,20 @@ divergir (exemplos, motivos de recusa e fases do jogo).
 | Tipo | Sentido | Campos |
 |---|---|---|
 | `input.tap` | celular → agente | `seq`, `sentAt`, `x`, `y` (0..1 sobre o vídeo) |
+| `input.scroll` | celular → agente | `seq`, `sentAt`, `x`, `y`, `dy` (-5..5, ≠ 0; positivo rola o conteúdo para baixo) |
+| `input.text` | celular → agente | `seq`, `sentAt`, `text` (1 a 64 caracteres, sem controle nem quebra de linha) |
+| `input.key` | celular → agente | `seq`, `sentAt`, `key` (`enter`, `backspace`, `escape`, `tab`) |
 | `input.ack` | agente → celular | `seq`, `status` (`accepted`/`rejected`), `reason` quando recusado |
 | `state` | agente → celular | `phase` (nomes da LCU), `inputAllowed`, `reason` quando bloqueado |
 
 Mensagens com campo extra, campo faltando, tipo desconhecido, número como texto
-ou acima de 4096 caracteres são descartadas.
+ou acima de 4096 caracteres são descartadas. Valores fora dos limites com
+formato correto (rolagem 0, texto longo ou com quebra de linha, coordenada fora
+de 0..1) são lidos e respondidos com `input.ack` recusado; exemplos em
+`contracts/examples/control/rejected/`.
+
+A sequência é única por sessão para todos os tipos de input, e o limite de 20
+comandos por segundo soma todos eles. Texto digitado nunca é registrado.
 
 ## Validação de um toque, na ordem
 
@@ -63,6 +72,6 @@ tela e para a escala 0..65535 do `SendInput`.
 ## Pendente
 
 - Autenticação: token de sessão após pareamento e WebAuthn (v0.5).
-- Mensagens de teclado, scroll e gestos (v0.2).
+- Zoom e gestos de dois dedos (v0.2).
 - O spike de WebRTC continua com as rotas provisórias `/offer`, `/time` e
   `/stats`; o agente (`src/LoLRemote.Agent`) já usa as rotas do contrato.

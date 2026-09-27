@@ -5,7 +5,24 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ## Não lançado
 
-Nada ainda.
+### Adicionado
+
+- Rolagem arrastando o dedo sobre o vídeo e teclado: caixa "Digitar no PC" e
+  botões Enter, Apagar, Esc e Tab. Mesmas validações e bloqueios do toque; texto
+  nunca registrado.
+- Contrato: mensagens `input.scroll`, `input.text` e `input.key`, com exemplos
+  válidos, inválidos e recusados.
+
+### Alterado
+
+- O toque passa a ser enviado ao soltar o dedo, para diferenciar de arrasto.
+- Depois de cada clique ou rolagem, o cursor do PC sai de cima do cliente, para
+  não abrir o vídeo de habilidades ao passar sobre um campeão.
+
+### Validado
+
+- 27/09/2026, League Client real: rolagem da lista de campeões, busca por
+  texto, tecla Apagar e chat pelo iPhone.
 
 ## 0.1.0 — Prova de conceito (27/09/2026)
 

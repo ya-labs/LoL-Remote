@@ -18,6 +18,10 @@
     .marker.bad { border-color: var(--bad); }
     .toast { min-height: 22px; margin: 8px 0; color: #ff8a9a; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .keyboard { display: flex; gap: 6px; margin: 8px 0; }
+    .keyboard input { flex: 1; min-width: 0; font: inherit; padding: 10px; border-radius: 8px; border: 1px solid #785a28; background: #0a1428; color: #f0e6d2; }
+    .keys button { padding: 8px 12px; }
+    .hint { color: var(--muted); font-size: 13px; margin: 4px 0; }
     button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--gold); background: #1e282d; color: #f0e6d2; }
     button:disabled { opacity: .4; }
     details { margin-top: 8px; color: var(--muted); }
@@ -36,6 +40,18 @@
     <video id="video" playsinline muted autoplay></video>
   </div>
   <div id="toast" class="toast"></div>
+  <div class="hint">Toque para clicar · arraste para cima/baixo para rolar</div>
+
+  <form id="typeForm" class="keyboard" autocomplete="off">
+    <input id="typeText" maxlength="64" placeholder="Digitar no PC (ex.: nome do campeão)" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button type="submit">Enviar</button>
+  </form>
+  <div class="row keys">
+    <button data-key="enter">Enter</button>
+    <button data-key="backspace">Apagar</button>
+    <button data-key="escape">Esc</button>
+    <button data-key="tab">Tab</button>
+  </div>
 
   <div class="row">
     <button id="connect">Conectar</button>
@@ -68,6 +84,9 @@
       'from-future': 'relógio fora de sincronia',
       'rate-limited': 'toques rápidos demais',
       'invalid-coordinates': 'posição inválida',
+      'invalid-scroll': 'rolagem inválida',
+      'invalid-text': 'texto inválido (sem quebras de linha, até 64 caracteres)',
+      'invalid-key': 'tecla não permitida',
       'letterbox': 'toque fora da imagem',
       'outside-client-area': 'toque na barra de título',
       'target-unavailable': 'janela do jogo não encontrada',
@@ -140,28 +159,83 @@
       return { x, y, px: event.clientX - stage.getBoundingClientRect().left, py: event.clientY - stage.getBoundingClientRect().top };
     }
 
-    stage.addEventListener('pointerdown', event => {
-      event.preventDefault();
-      if (!channel || channel.readyState !== 'open') { return; }
-      const point = videoPoint(event);
-      if (!point) { return; }
+    // Toque curto = clique (enviado ao soltar). Arrastar na vertical = rolagem:
+    // cada 40 px de arrasto vira um "clique" da roda, no ponto onde começou.
+    const TAP_SLOP = 10, SCROLL_STEP = 40;
+    let gesture = null;
 
+    function channelOpen() { return channel && channel.readyState === 'open'; }
+
+    function send(message, marker) {
+      seq += 1;
+      const mySeq = seq;
+      pending.set(mySeq, { marker, sentAt: performance.now() });
+      channel.send(JSON.stringify({ ...message, v: 1, seq: mySeq, sentAt: serverNow() }));
+      setTimeout(() => {
+        const item = pending.get(mySeq);
+        if (item) {
+          pending.delete(mySeq);
+          if (item.marker) { finishMarker(item.marker, null); }
+          $('toast').textContent = 'Sem resposta do PC.';
+        }
+      }, 2000);
+    }
+
+    function addMarker(point) {
       const marker = document.createElement('div');
       marker.className = 'marker';
       marker.style.left = `${point.px}px`;
       marker.style.top = `${point.py}px`;
       stage.appendChild(marker);
+      return marker;
+    }
 
-      seq += 1;
-      const sentAt = serverNow();
-      pending.set(seq, { marker, sentAt: performance.now() });
-      channel.send(JSON.stringify({ type: 'input.tap', v: 1, seq, sentAt, x: point.x, y: point.y }));
+    stage.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      if (!channelOpen()) { return; }
+      const point = videoPoint(event);
+      if (!point) { return; }
+      stage.setPointerCapture(event.pointerId);
+      gesture = { id: event.pointerId, point, startY: event.clientY, lastY: event.clientY, scrolling: false };
+    });
 
-      const mySeq = seq;
-      setTimeout(() => {
-        const item = pending.get(mySeq);
-        if (item) { pending.delete(mySeq); finishMarker(item.marker, null); $('toast').textContent = 'Sem resposta do PC para o toque.'; }
-      }, 2000);
+    stage.addEventListener('pointermove', event => {
+      if (!gesture || event.pointerId !== gesture.id || !channelOpen()) { return; }
+      if (!gesture.scrolling && Math.abs(event.clientY - gesture.startY) > TAP_SLOP) { gesture.scrolling = true; }
+      if (!gesture.scrolling) { return; }
+      const moved = gesture.lastY - event.clientY;   // dedo para cima = conteúdo para baixo
+      const notches = Math.trunc(moved / SCROLL_STEP);
+      if (notches !== 0) {
+        gesture.lastY -= notches * SCROLL_STEP;
+        send({ type: 'input.scroll', x: gesture.point.x, y: gesture.point.y, dy: Math.max(-5, Math.min(5, notches)) }, null);
+      }
+    });
+
+    function endGesture(event, cancelled) {
+      if (!gesture || event.pointerId !== gesture.id) { return; }
+      const { point, scrolling } = gesture;
+      gesture = null;
+      if (!cancelled && !scrolling && channelOpen()) {
+        send({ type: 'input.tap', x: point.x, y: point.y }, addMarker(point));
+      }
+    }
+
+    stage.addEventListener('pointerup', event => endGesture(event, false));
+    stage.addEventListener('pointercancel', event => endGesture(event, true));
+
+    $('typeForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const input = $('typeText');
+      const text = input.value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, '');
+      if (!text || !channelOpen()) { return; }
+      send({ type: 'input.text', text: text.slice(0, 64) }, null);
+      input.value = '';
+    });
+
+    document.querySelectorAll('[data-key]').forEach(button => {
+      button.addEventListener('click', () => {
+        if (channelOpen()) { send({ type: 'input.key', key: button.dataset.key }, null); }
+      });
     });
 
     function finishMarker(marker, ok) {
@@ -180,9 +254,9 @@
         if (!item) { return; }
         pending.delete(message.seq);
         const accepted = message.status === 'accepted';
-        finishMarker(item.marker, accepted);
+        if (item.marker) { finishMarker(item.marker, accepted); }
         $('tapRtt').textContent = `${Math.round(performance.now() - item.sentAt)} ms`;
-        $('toast').textContent = accepted ? '' : `Toque recusado: ${REASONS[message.reason] || message.reason}.`;
+        $('toast').textContent = accepted ? '' : `Recusado: ${REASONS[message.reason] || message.reason}.`;
       }
     }
 
@@ -316,7 +390,7 @@
       if (channel) { channel.onclose = null; channel.close(); channel = null; }
       if (pc) { pc.close(); pc = null; }
       video.srcObject = null;
-      pending.forEach(item => item.marker.remove());
+      pending.forEach(item => { if (item.marker) { item.marker.remove(); } });
       pending.clear();
       setBanner('Desconectado');
       $('connect').disabled = false;

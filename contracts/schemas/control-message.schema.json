@@ -2,16 +2,42 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ya-labs/LoL-Remote/contracts/schemas/control-message.schema.json",
   "title": "Mensagem de controle do LoL Remote",
-  "description": "Mensagens trocadas no canal de dados WebRTC \"control\" (ordenado e confiável). Versão 1. Implementação de referência: src/LoLRemote.Agent.Core/Protocol.",
+  "description": "Mensagens trocadas no canal de dados WebRTC \"control\" (ordenado e confiável). Versão 1 (input.scroll, input.text e input.key adicionados na v0.2, compatíveis com a versão 1). Implementação de referência: src/LoLRemote.Agent.Core/Protocol.",
   "type": "object",
-  "required": ["type"],
+  "required": [
+    "type"
+  ],
   "properties": {
-    "type": { "enum": ["input.tap", "input.ack", "state"] }
+    "type": {
+      "enum": [
+        "input.tap",
+        "input.scroll",
+        "input.text",
+        "input.key",
+        "input.ack",
+        "state"
+      ]
+    }
   },
   "oneOf": [
-    { "$ref": "#/$defs/tap" },
-    { "$ref": "#/$defs/ack" },
-    { "$ref": "#/$defs/state" }
+    {
+      "$ref": "#/$defs/tap"
+    },
+    {
+      "$ref": "#/$defs/scroll"
+    },
+    {
+      "$ref": "#/$defs/text"
+    },
+    {
+      "$ref": "#/$defs/key"
+    },
+    {
+      "$ref": "#/$defs/ack"
+    },
+    {
+      "$ref": "#/$defs/state"
+    }
   ],
   "$defs": {
     "version": {
@@ -22,6 +48,10 @@
       "description": "Número de sequência, estritamente crescente por sessão. Sequências repetidas ou menores são recusadas.",
       "type": "integer",
       "minimum": 0
+    },
+    "sentAt": {
+      "description": "Horário de envio no relógio do agente, em ms (o celular sincroniza por GET /api/v1/time). Comandos com mais de 1000 ms são recusados.",
+      "type": "integer"
     },
     "coordinate": {
       "description": "Coordenada normalizada sobre o vídeo recebido (0 = esquerda/topo, 1 = direita/base).",
@@ -38,6 +68,9 @@
         "from-future",
         "rate-limited",
         "invalid-coordinates",
+        "invalid-key",
+        "invalid-text",
+        "invalid-scroll",
         "letterbox",
         "outside-client-area",
         "target-unavailable",
@@ -53,8 +86,18 @@
     "phase": {
       "description": "Fase de gameflow do League Client, com os nomes da LCU.",
       "enum": [
-        "Unknown", "None", "Lobby", "Matchmaking", "ReadyCheck", "ChampSelect",
-        "GameStart", "InProgress", "Reconnect", "WaitingForStats", "PreEndOfGame", "EndOfGame"
+        "Unknown",
+        "None",
+        "Lobby",
+        "Matchmaking",
+        "ReadyCheck",
+        "ChampSelect",
+        "GameStart",
+        "InProgress",
+        "Reconnect",
+        "WaitingForStats",
+        "PreEndOfGame",
+        "EndOfGame"
       ]
     },
     "tap": {
@@ -62,17 +105,145 @@
       "description": "Toque explícito da pessoa em um ponto do vídeo. O agente responde sempre com input.ack.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "v", "seq", "sentAt", "x", "y"],
+      "required": [
+        "type",
+        "v",
+        "seq",
+        "sentAt",
+        "x",
+        "y"
+      ],
       "properties": {
-        "type": { "const": "input.tap" },
-        "v": { "$ref": "#/$defs/version" },
-        "seq": { "$ref": "#/$defs/sequence" },
-        "sentAt": {
-          "description": "Horário de envio no relógio do agente, em ms (o celular sincroniza por GET /api/v1/time). Comandos com mais de 1000 ms são recusados.",
-          "type": "integer"
+        "type": {
+          "const": "input.tap"
         },
-        "x": { "$ref": "#/$defs/coordinate" },
-        "y": { "$ref": "#/$defs/coordinate" }
+        "v": {
+          "$ref": "#/$defs/version"
+        },
+        "seq": {
+          "$ref": "#/$defs/sequence"
+        },
+        "sentAt": {
+          "$ref": "#/$defs/sentAt"
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        }
+      }
+    },
+    "scroll": {
+      "title": "input.scroll (celular → agente)",
+      "description": "Rolagem explícita no ponto do vídeo. O agente responde com input.ack.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "v",
+        "seq",
+        "sentAt",
+        "x",
+        "y",
+        "dy"
+      ],
+      "properties": {
+        "type": {
+          "const": "input.scroll"
+        },
+        "v": {
+          "$ref": "#/$defs/version"
+        },
+        "seq": {
+          "$ref": "#/$defs/sequence"
+        },
+        "sentAt": {
+          "$ref": "#/$defs/sentAt"
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "dy": {
+          "description": "Cliques da roda do mouse; positivo rola o conteúdo para baixo.",
+          "type": "integer",
+          "minimum": -5,
+          "maximum": 5,
+          "not": {
+            "const": 0
+          }
+        }
+      }
+    },
+    "text": {
+      "title": "input.text (celular → agente)",
+      "description": "Texto digitado pela pessoa, inserido onde o foco estiver na janela alvo. Nunca é registrado em log. O agente conta o limite em unidades UTF-16 (emojis contam 2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "v",
+        "seq",
+        "sentAt",
+        "text"
+      ],
+      "properties": {
+        "type": {
+          "const": "input.text"
+        },
+        "v": {
+          "$ref": "#/$defs/version"
+        },
+        "seq": {
+          "$ref": "#/$defs/sequence"
+        },
+        "sentAt": {
+          "$ref": "#/$defs/sentAt"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]+$"
+        }
+      }
+    },
+    "key": {
+      "title": "input.key (celular → agente)",
+      "description": "Tecla especial permitida.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "v",
+        "seq",
+        "sentAt",
+        "key"
+      ],
+      "properties": {
+        "type": {
+          "const": "input.key"
+        },
+        "v": {
+          "$ref": "#/$defs/version"
+        },
+        "seq": {
+          "$ref": "#/$defs/sequence"
+        },
+        "sentAt": {
+          "$ref": "#/$defs/sentAt"
+        },
+        "key": {
+          "enum": [
+            "enter",
+            "backspace",
+            "escape",
+            "tab"
+          ]
+        }
       }
     },
     "ack": {
@@ -80,34 +251,99 @@
       "description": "Confirmação explícita de um comando.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "v", "seq", "status"],
+      "required": [
+        "type",
+        "v",
+        "seq",
+        "status"
+      ],
       "properties": {
-        "type": { "const": "input.ack" },
-        "v": { "$ref": "#/$defs/version" },
-        "seq": { "$ref": "#/$defs/sequence" },
-        "status": { "enum": ["accepted", "rejected"] },
-        "reason": { "$ref": "#/$defs/rejectReason" }
+        "type": {
+          "const": "input.ack"
+        },
+        "v": {
+          "$ref": "#/$defs/version"
+        },
+        "seq": {
+          "$ref": "#/$defs/sequence"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/rejectReason"
+        }
       },
-      "if": { "properties": { "status": { "const": "rejected" } } },
-      "then": { "required": ["reason"] },
-      "else": { "not": { "required": ["reason"] } }
+      "if": {
+        "properties": {
+          "status": {
+            "const": "rejected"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "reason"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "reason"
+          ]
+        }
+      }
     },
     "state": {
       "title": "state (agente → celular)",
       "description": "Estado atual e se o input está liberado. Enviado ao conectar e a cada mudança.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "v", "phase", "inputAllowed"],
+      "required": [
+        "type",
+        "v",
+        "phase",
+        "inputAllowed"
+      ],
       "properties": {
-        "type": { "const": "state" },
-        "v": { "$ref": "#/$defs/version" },
-        "phase": { "$ref": "#/$defs/phase" },
-        "inputAllowed": { "type": "boolean" },
-        "reason": { "$ref": "#/$defs/rejectReason" }
+        "type": {
+          "const": "state"
+        },
+        "v": {
+          "$ref": "#/$defs/version"
+        },
+        "phase": {
+          "$ref": "#/$defs/phase"
+        },
+        "inputAllowed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "$ref": "#/$defs/rejectReason"
+        }
       },
-      "if": { "properties": { "inputAllowed": { "const": false } } },
-      "then": { "required": ["reason"] },
-      "else": { "not": { "required": ["reason"] } }
+      "if": {
+        "properties": {
+          "inputAllowed": {
+            "const": false
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "reason"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "reason"
+          ]
+        }
+      }
     }
   }
 }

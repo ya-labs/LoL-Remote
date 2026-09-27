@@ -19,7 +19,8 @@ O roadmap registra resultados de produto e marca o que já foi entregue
 
 ## v0.2 — Controle utilizável
 
-- [ ] teclado, scroll e gestos necessários;
+- [x] teclado, scroll e gestos necessários (toque, arrastar para rolar,
+  texto e teclas especiais);
 - [ ] zoom e orientação mobile;
 - [ ] reconexão;
 - [ ] múltiplos monitores e mudanças de tamanho/DPI.

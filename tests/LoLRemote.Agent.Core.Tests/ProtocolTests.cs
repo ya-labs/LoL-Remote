@@ -13,6 +13,8 @@ public class ProtocolTests
 
     public static TheoryData<string> InvalidExamples => Examples("examples/control/invalid");
 
+    public static TheoryData<string> RejectedExamples => Examples("examples/control/rejected");
+
     [Theory]
     [MemberData(nameof(ValidExamples))]
     public void Valid_contract_examples_parse_and_round_trip(string file)
@@ -31,6 +33,52 @@ public class ProtocolTests
         var json = File.ReadAllText(Path.Combine(Contracts, file));
 
         Assert.False(ControlMessageSerializer.TryParse(json, out _), file);
+    }
+
+    /// <summary>
+    /// Fora do schema, mas bem formadas: o agente lê e responde com input.ack
+    /// rejected (a validação de valores fica no InputValidator).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(RejectedExamples))]
+    public void Rejected_examples_parse_so_the_agent_can_answer(string file)
+    {
+        var json = File.ReadAllText(Path.Combine(Contracts, file));
+
+        Assert.True(ControlMessageSerializer.TryParse(json, out _), file);
+    }
+
+    [Fact]
+    public void Text_message_never_prints_its_content()
+    {
+        Assert.True(ControlMessageSerializer.TryParse(
+            File.ReadAllText(Path.Combine(Contracts, "examples/control/text.json")), out var message));
+
+        var text = Assert.IsType<TextMessage>(message);
+        Assert.Equal("Ahri", text.Text);
+        Assert.DoesNotContain("Ahri", text.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Scroll_and_key_examples_have_expected_values()
+    {
+        Assert.True(ControlMessageSerializer.TryParse(
+            File.ReadAllText(Path.Combine(Contracts, "examples/control/scroll.json")), out var scroll));
+        Assert.Equal(2, Assert.IsType<ScrollMessage>(scroll).Notches);
+
+        Assert.True(ControlMessageSerializer.TryParse(
+            File.ReadAllText(Path.Combine(Contracts, "examples/control/key.json")), out var key));
+        Assert.Equal(SpecialKey.Enter, Assert.IsType<KeyMessage>(key).Key);
+    }
+
+    [Fact]
+    public void Special_keys_match_the_schema()
+    {
+        using var schema = JsonDocument.Parse(File.ReadAllText(Path.Combine(Contracts, "schemas/control-message.schema.json")));
+        var schemaKeys = schema.RootElement.GetProperty("$defs").GetProperty("key").GetProperty("properties")
+            .GetProperty("key").GetProperty("enum").EnumerateArray().Select(e => e.GetString()!);
+
+        AssertSameSet(schemaKeys, Enum.GetNames<SpecialKey>().Select(JsonNamingPolicy.KebabCaseLower.ConvertName));
     }
 
     [Fact]
