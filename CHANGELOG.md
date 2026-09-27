@@ -5,6 +5,13 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ## Não lançado
 
+Nada ainda.
+
+## 0.1.0 — Prova de conceito (27/09/2026)
+
+Primeira versão funcional: pelo iPhone, ver a janela do League Client e tocar
+para clicar nela, com o controle bloqueado durante a partida.
+
 ### Adicionado
 
 - Agente funciona com o League Client real (`--target league`): lê a fase pela
@@ -59,6 +66,7 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Alterado
 
+- Pausa do controle remoto após uso local do PC reduzida de 10 s para 5 s (D9).
 - Modo de colaboração de `study` para `work`: a IA desenvolve, Nícolas testa
   e decide (D1).
 - Desenvolvimento direto na `main`, sem issues, branches e PRs obrigatórios;
@@ -67,6 +75,8 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 ### Corrigido
 
 - Agente travava ao encerrar com Ctrl+C.
+- Depois de uma partida o agente perdia a janela do cliente, que é recriada;
+  agora ele a reencontra sozinho.
 - Leitura do lockfile do cliente real falhava porque o cliente mantém o arquivo
   aberto.
 
@@ -75,7 +85,8 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 ### Validado
 
 - 27/09/2026, League Client real pelo iPhone: toques funcionando na sala, na
-  fila, no Ready Check e na seleção de campeões, com o Vanguard ativo.
+  fila, no Ready Check e na seleção de campeões, com o Vanguard ativo; controle
+  bloqueado durante a partida.
 
 - 26/09/2026, League Client real: captura só da janela do cliente, inclusive
   coberta e em outro monitor, sem ler a API e sem clicar.

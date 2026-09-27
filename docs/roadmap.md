@@ -9,7 +9,7 @@ O roadmap registra resultados de produto e marca o que já foi entregue
 - [x] modo de trabalho e rastreabilidade no repositório (decisões D1 e D2);
 - [x] ambiente de desenvolvimento, CI e critérios de qualidade.
 
-## v0.1 — Prova de conceito
+## v0.1 — Prova de conceito (concluída em 27/09/2026)
 
 - [x] simulador seguro do fluxo do League;
 - [x] descoberta e captura exclusiva de uma janela ([ADR 0001](adr/0001-captura-de-janela.md));
@@ -86,5 +86,4 @@ bloqueio de gameplay começam na v0.1. A v0.6 consolida e audita o conjunto.
 7. [x] Medir latência e registrar a decisão de transporte (vídeo; a latência
    do toque será medida junto com o input).
 8. [x] Somente então testar captura e clique no League Client real
-   ([ADR 0003](adr/0003-input-com-sendinput.md)); falta confirmar o bloqueio no
-   início de uma partida real.
+   ([ADR 0003](adr/0003-input-com-sendinput.md)).

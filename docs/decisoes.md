@@ -11,6 +11,17 @@ Status possíveis: **vigente**, **substituída** (com link para a nova) ou
 
 ---
 
+## D9 — Pausa por uso local do PC de 5 s
+
+- **Data:** 27/09/2026
+- **Decidido por:** Nícolas
+- **Status:** vigente (substitui os 10 s iniciais)
+- **Contexto:** 10 s de pausa depois de qualquer mexida no mouse ou teclado do
+  PC atrapalhavam o uso.
+- **Decisão:** o controle remoto pausa por 5 s após input local.
+- **Consequência:** a proteção contra duas pessoas controlando ao mesmo tempo
+  continua, com espera menor.
+
 ## D8 — Input remoto com SendInput, validado no cliente real
 
 - **Data:** 27/09/2026
@@ -20,8 +31,8 @@ Status possíveis: **vigente**, **substituída** (com link para a nova) ou
   simulados no cliente do League.
 - **Decisão:** manter `SendInput` com verificação de primeiro plano, conforme
   o [ADR 0003](adr/0003-input-com-sendinput.md).
-- **Consequência:** não é preciso driver de mouse virtual. Falta confirmar o
-  bloqueio no início de uma partida real.
+- **Consequência:** não é preciso driver de mouse virtual. O bloqueio durante
+  a partida também foi confirmado no cliente real.
 
 ## D7 — Registrar o projeto na Riot antes de usar o cliente real
 

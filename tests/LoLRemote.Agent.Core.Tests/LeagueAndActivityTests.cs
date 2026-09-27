@@ -46,7 +46,8 @@ public class LeagueAndActivityTests
     [Fact]
     public void Recent_local_input_is_activity()
     {
-        Assert.True(LocalActivity.IsActive(nowTick: 20_000, lastInputTick: 15_000, lastInjectedTick: null));
+        Assert.True(LocalActivity.IsActive(nowTick: 20_000, lastInputTick: 17_000, lastInjectedTick: null));
+        Assert.False(LocalActivity.IsActive(nowTick: 20_000, lastInputTick: 15_000, lastInjectedTick: null));
     }
 
     [Fact]

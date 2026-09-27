@@ -9,7 +9,7 @@ namespace LoLRemote.Agent.Core.Input;
 public static class LocalActivity
 {
     /// <summary>Tempo sem input local para liberar o controle remoto.</summary>
-    public const uint DefaultIdleMs = 10_000;
+    public const uint DefaultIdleMs = 5_000;
 
     /// <summary>Folga para reconhecer o input como sendo do agente.</summary>
     public const uint DefaultInjectionToleranceMs = 150;

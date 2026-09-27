@@ -10,7 +10,7 @@ um bot: ele não escolhe campeão, bane, altera runas ou joga automaticamente.
 
 ## Estado atual
 
-A v0.1 está quase concluída. Já funcionam, contra um simulador do League
+A v0.1 foi concluída em 27/09/2026. Já funcionam, contra um simulador do League
 Client:
 
 - captura exclusiva da janela e vídeo H.264 para o iPhone por WebRTC, pela
@@ -20,8 +20,8 @@ Client:
   ([agente](docs/agente.md)).
 
 Em 27/09/2026 o controle funcionou também no League Client real (produto
-registrado na Riot; ver [registro](docs/registro-riot.md)). Falta confirmar o
-bloqueio no início de uma partida real para fechar a v0.1.
+registrado na Riot; ver [registro](docs/registro-riot.md)). O bloqueio durante a
+partida também foi confirmado no cliente real.
 
 ## Objetivo da v1.0
 
