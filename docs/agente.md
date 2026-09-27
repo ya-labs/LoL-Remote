@@ -20,7 +20,7 @@ iPhone (Safari)                          PC (agente)
   LCU. O lockfile precisa ser do mesmo processo da janela alvo; sem leitura nos
   últimos 2 s, a fase vira `Unknown` e o controle bloqueia.
 - Atividade local: se alguém mexer no mouse ou teclado do PC, o controle remoto
-  pausa por 10 s. Cliques do próprio agente não contam.
+  pausa por 5 s (decisão D9). Cliques do próprio agente não contam.
 - Modo remoto: ativo por 30 minutos desde o início do agente
   (`--remote-minutes 5..60`).
 - Nada de coordenadas, texto ou senha é registrado. O console mostra só o
@@ -47,7 +47,7 @@ No iPhone, abra o endereço do Tailscale Serve e toque em Conectar.
 4. Em "Partida em andamento", a faixa fica vermelha. Toque na tela: o toque
    deve ser recusado ("partida em andamento") e o contador de violações do
    simulador deve continuar em 0.
-5. Mexa no mouse do PC: a faixa mostra "alguém está usando o PC" por 10 s.
+5. Mexa no mouse do PC: a faixa mostra "alguém está usando o PC" por 5 s.
 6. Minimize o simulador: toques recusados ("janela do jogo minimizada").
 
 ## Cliente real (`--target league`)
@@ -103,9 +103,12 @@ Roteiro:
   Ready Check e escolha na seleção de campeões. O Vanguard não bloqueou os
   cliques.
 - Pausa por atividade local funcionou.
-- Pendente: confirmar o bloqueio quando a partida começa (GameStart e
-  InProgress).
+- Bloqueio durante a partida confirmado numa partida personalizada.
 - Corrigido depois do teste: o agente travava ao encerrar com Ctrl+C.
+- Corrigido depois do teste: ao sair da partida o cliente recria a janela de
+  interface e o agente ficava sem alvo ("janela do jogo não encontrada"). Agora
+  ele procura a janela de novo a cada segundo, com as mesmas verificações, e
+  recria a captura. Pendente confirmar no cliente real.
 
 ## Status
 

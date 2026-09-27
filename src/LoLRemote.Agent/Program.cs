@@ -96,15 +96,18 @@ using var sipLogs = LoggerFactory.Create(logging => logging
     .SetMinimumLevel(LogLevel.Error));
 SIPSorcery.LogFactory.Set(sipLogs);
 
-using var frames = new FrameSource(target.Handle);
-await using var streamer = new VideoStreamer(frames, options.LatencyStamp);
-streamer.Start();
 await using var phase = new PhaseMonitor(phaseSource);
 phase.Start();
+Func<TargetWindow, PhaseSource?> phaseSourceFor = options.Target == AgentTarget.League
+    ? window => PhaseSources.ForLeague(window, options.LockfilePath, out _)
+    : PhaseSources.ForSimulator;
+await using var tracker = new TargetTracker(spec, target, phaseSourceFor, phase);
+tracker.Start();
+await using var streamer = new VideoStreamer(() => tracker.LatestFrame, options.LatencyStamp);
+streamer.Start();
 var injector = new WindowsInputInjector();
 await using var sessions = new SessionManager(
-    target,
-    frames,
+    tracker,
     streamer,
     phase,
     injector,
@@ -181,7 +184,7 @@ app.MapPost("/api/v1/diagnostics/stats", async (HttpRequest request) =>
 Console.WriteLine();
 Console.WriteLine($"Pronto. HTTP em http://127.0.0.1:{options.Port} (publique com: tailscale serve --bg {options.Port}).");
 Console.WriteLine($"Carimbo de latência no vídeo: {(options.LatencyStamp ? "ligado" : "desligado")}.");
-Console.WriteLine($"Modo remoto ativo por {options.RemoteMinutes} minutos. Mexer no mouse/teclado do PC pausa o controle por 10 s.");
+Console.WriteLine($"Modo remoto ativo por {options.RemoteMinutes} minutos. Mexer no mouse/teclado do PC pausa o controle por 5 s.");
 Console.WriteLine("Para encerrar tudo imediatamente: Ctrl+C.");
 Console.WriteLine();
 await app.RunAsync().ConfigureAwait(false);

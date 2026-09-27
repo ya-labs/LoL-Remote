@@ -29,7 +29,8 @@ internal sealed class PhaseMonitor : IAsyncDisposable
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(500);
     private const long MaxAgeMs = 2000;
 
-    private readonly PhaseSource _source;
+    private readonly Lock _gate = new();
+    private PhaseSource _source;
     private readonly CancellationTokenSource _stop = new();
     private HttpClient? _http;
     private string? _lockfileContent;
@@ -60,6 +61,17 @@ internal sealed class PhaseMonitor : IAsyncDisposable
     private static string? CertificateProblem { get; set; }
 
     public void Start() => _loop = Task.Run(() => RunAsync(_stop.Token));
+
+    /// <summary>Troca a fonte (janela alvo reencontrada); a fase fica Unknown até a próxima leitura.</summary>
+    public void Replace(PhaseSource source)
+    {
+        lock (_gate)
+        {
+            _source = source;
+            _lockfileContent = null;
+            Interlocked.Exchange(ref _lastSuccessMs, long.MinValue / 2);
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -92,13 +104,19 @@ internal sealed class PhaseMonitor : IAsyncDisposable
 
     private async Task PollAsync(CancellationToken token)
     {
+        PhaseSource source;
+        lock (_gate)
+        {
+            source = _source;
+        }
+
         string content;
         try
         {
             // O LeagueClient mantém o lockfile aberto para escrita: é preciso
             // compartilhar leitura e escrita, senão o Windows nega o acesso.
             var stream = new FileStream(
-                _source.LockfilePath,
+                source.LockfilePath,
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
@@ -110,7 +128,7 @@ internal sealed class PhaseMonitor : IAsyncDisposable
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            _status = $"lockfile não encontrado em {_source.LockfilePath}";
+            _status = $"lockfile não encontrado em {source.LockfilePath}";
             return;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -125,20 +143,20 @@ internal sealed class PhaseMonitor : IAsyncDisposable
             return;
         }
 
-        if (lockfile!.ProcessId != _source.ExpectedProcessId)
+        if (lockfile!.ProcessId != source.ExpectedProcessId)
         {
             _status = "lockfile de outro processo";
             return;
         }
 
         var https = lockfile.Protocol == "https";
-        if (https && _source.RiotRoot is null)
+        if (https && source.RiotRoot is null)
         {
             _status = "HTTPS sem certificado raiz da Riot";
             return;
         }
 
-        if (!https && _source.RiotRoot is not null)
+        if (!https && source.RiotRoot is not null)
         {
             _status = "cliente real sem HTTPS: recusado";
             return;
@@ -147,7 +165,7 @@ internal sealed class PhaseMonitor : IAsyncDisposable
         if (_http is null || content != _lockfileContent)
         {
             _http?.Dispose();
-            _http = CreateClient(lockfile, _source.RiotRoot);
+            _http = CreateClient(lockfile, source.RiotRoot);
             _lockfileContent = content;
         }
 

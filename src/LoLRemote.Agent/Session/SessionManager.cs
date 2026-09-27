@@ -24,8 +24,7 @@ internal sealed class SessionManager : IAsyncDisposable
     private const long CaptureFreshMs = 5000;
     private const long StateHeartbeatMs = 5000;
 
-    private readonly TargetWindow _target;
-    private readonly FrameSource _frames;
+    private readonly TargetTracker _tracker;
     private readonly VideoStreamer _streamer;
     private readonly PhaseMonitor _phase;
     private readonly WindowsInputInjector _injector;
@@ -38,16 +37,14 @@ internal sealed class SessionManager : IAsyncDisposable
     private string? _lastConsoleState;
 
     public SessionManager(
-        TargetWindow target,
-        FrameSource frames,
+        TargetTracker tracker,
         VideoStreamer streamer,
         PhaseMonitor phase,
         WindowsInputInjector injector,
         IPAddress bindAddress,
         TimeSpan remoteMode)
     {
-        _target = target;
-        _frames = frames;
+        _tracker = tracker;
         _streamer = streamer;
         _phase = phase;
         _injector = injector;
@@ -101,8 +98,8 @@ internal sealed class SessionManager : IAsyncDisposable
     /// <summary>Estado de bloqueio atual, na ordem de segurança do Agent.Core.</summary>
     private InputGateState CurrentGate()
     {
-        var target = _target.Describe();
-        var latest = _frames.Latest;
+        var target = _tracker.Target.Describe();
+        var latest = _tracker.LatestFrame;
         return new InputGateState(
             TargetValid: target.Valid,
             TargetMinimized: target.Minimized,
@@ -242,19 +239,20 @@ internal sealed class SessionManager : IAsyncDisposable
             return InputRejectReason.CaptureStale;
         }
 
+        var target = _tracker.Target;
         var command = new TapCommand(tap.Version, tap.Sequence, tap.SentAtMs, new(tap.X, tap.Y));
         var decision = session.Validator.Validate(
             command,
             ServerClock.NowMs,
             CurrentGate(),
             layout,
-            _target.Describe().ClientAreaInFrame);
+            target.Describe().ClientAreaInFrame);
         if (!decision.Accepted)
         {
             return decision.Reason;
         }
 
-        return _injector.Click(_target, decision.Point!.Value) switch
+        return _injector.Click(target, decision.Point!.Value) switch
         {
             InjectionResult.Clicked => null,
             InjectionResult.TargetUnavailable => InputRejectReason.TargetUnavailable,

@@ -46,5 +46,4 @@ como alternativa. Havia o risco de o Vanguard descartar input sintético.
 
 - O clique rouba o primeiro plano e move o cursor do PC; é aceitável porque o
   controle só é liberado sem atividade local recente.
-- O bloqueio no início da partida com o cliente real ainda precisa ser
-  confirmado (no simulador foi validado).
+- O bloqueio durante a partida foi confirmado no cliente real em 27/09/2026.

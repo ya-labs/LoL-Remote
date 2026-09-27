@@ -29,7 +29,7 @@ internal sealed class VideoStreamer : IAsyncDisposable
     private const uint White = 0xFFFFFFFF;
     private const uint Black = 0xFF000000;
 
-    private readonly FrameSource _source;
+    private readonly Func<CapturedFrame?> _latestFrame;
     private readonly bool _latencyStamp;
     // Quadro-chave a cada 15 quadros (1 s): após perda de pacotes, o vídeo se
     // recupera em no máximo 1 s mesmo sem pedido explícito do iPhone.
@@ -53,9 +53,9 @@ internal sealed class VideoStreamer : IAsyncDisposable
     private long _keyFramesRequested;
     private long _lastKeyFrameRequestMs = long.MinValue / 2;
 
-    public VideoStreamer(FrameSource source, bool latencyStamp)
+    public VideoStreamer(Func<CapturedFrame?> latestFrame, bool latencyStamp)
     {
-        _source = source;
+        _latestFrame = latestFrame;
         _latencyStamp = latencyStamp;
     }
 
@@ -164,7 +164,7 @@ internal sealed class VideoStreamer : IAsyncDisposable
                 peer = _peer;
             }
 
-            if (peer is null || _source.Latest is not { } frame)
+            if (peer is null || _latestFrame() is not { } frame)
             {
                 continue;
             }
