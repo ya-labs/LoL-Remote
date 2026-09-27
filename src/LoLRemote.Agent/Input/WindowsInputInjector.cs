@@ -35,6 +35,9 @@ internal sealed unsafe class WindowsInputInjector
         }
     }
 
+    /// <summary>Descrição do último bloqueio por janela na frente, sem coordenadas.</summary>
+    public string? LastDiagnostic { get; private set; }
+
     /// <summary>Indica se alguém usou mouse ou teclado no PC nos últimos segundos.</summary>
     public bool LocalActivityDetected()
     {
@@ -61,6 +64,10 @@ internal sealed unsafe class WindowsInputInjector
                 return InjectionResult.TargetMinimized;
             }
 
+            // O botão de minimizar do League Client não usa o estado minimizado do
+            // Windows. Se a janela ou a dona dela estiver escondida, restaura antes.
+            RestoreIfHidden(target.Handle);
+
             var screen = new NativeMethods.Point { X = point.X, Y = point.Y };
             if (!NativeMethods.ClientToScreen(target.Handle, ref screen))
             {
@@ -69,12 +76,14 @@ internal sealed unsafe class WindowsInputInjector
 
             if (!EnsureForeground(target.Handle))
             {
+                LastDiagnostic = Diagnose(target.Handle, NativeMethods.GetForegroundWindow());
                 return InjectionResult.TargetObscured;
             }
 
             var hit = NativeMethods.WindowFromPoint(screen);
             if (hit == 0 || NativeMethods.GetAncestor(hit, NativeMethods.GaRoot) != target.Handle)
             {
+                LastDiagnostic = Diagnose(target.Handle, hit);
                 return InjectionResult.TargetObscured;
             }
 
@@ -101,6 +110,36 @@ internal sealed unsafe class WindowsInputInjector
             // Menos de 3 eventos: o Windows bloqueou (por exemplo, janela com privilégio maior).
             return sent == 3 ? InjectionResult.Clicked : InjectionResult.TargetObscured;
         }
+    }
+
+    private static void RestoreIfHidden(nint hwnd)
+    {
+        var owner = NativeMethods.GetWindow(hwnd, NativeMethods.GwOwner);
+        if (owner != 0 && NativeMethods.IsIconic(owner))
+        {
+            _ = NativeMethods.ShowWindow(owner, NativeMethods.SwRestore);
+        }
+
+        if (!NativeMethods.IsWindowVisible(hwnd) || NativeMethods.IsIconic(hwnd))
+        {
+            _ = NativeMethods.ShowWindow(hwnd, NativeMethods.SwRestore);
+        }
+    }
+
+    private static string Diagnose(nint target, nint other)
+    {
+        var owner = NativeMethods.GetWindow(target, NativeMethods.GwOwner);
+        var otherRoot = other == 0 ? 0 : NativeMethods.GetAncestor(other, NativeMethods.GaRoot);
+        var otherProcess = "nenhuma";
+        if (otherRoot != 0)
+        {
+            _ = NativeMethods.GetWindowThreadProcessId(otherRoot, out var pid);
+            otherProcess = TargetWindow.ProcessNameOf(pid) ?? "?";
+        }
+
+        return $"alvo visível={NativeMethods.IsWindowVisible(target)}, minimizado={NativeMethods.IsIconic(target)}, " +
+            $"dona={(owner == 0 ? "nenhuma" : $"minimizada={NativeMethods.IsIconic(owner)}")}, " +
+            $"janela no caminho: {otherProcess}";
     }
 
     private static NativeMethods.Input MouseInput(int x, int y, uint flags) => new()

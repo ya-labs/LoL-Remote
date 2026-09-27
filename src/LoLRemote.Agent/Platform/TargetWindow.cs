@@ -9,8 +9,11 @@ namespace LoLRemote.Agent.Platform;
 /// <param name="ProcessName">Nome exato do processo.</param>
 internal sealed record TargetSpec(string Title, string ProcessName)
 {
-    /// <summary>Único alvo aceito na v0.1.</summary>
+    /// <summary>Simulador do projeto.</summary>
     public static TargetSpec Simulator { get; } = new("LoL Remote Simulator", "LoLRemote.Simulator");
+
+    /// <summary>Janela do League Client (processo de interface).</summary>
+    public static TargetSpec League { get; } = new("League of Legends", "LeagueClientUx");
 }
 
 /// <summary>Estado da janela alvo em um instante.</summary>
@@ -100,6 +103,64 @@ internal sealed unsafe class TargetWindow
             NativeMethods.IsIconic(Handle),
             new PixelRect(frame.Left, frame.Top, frame.Right - frame.Left, frame.Bottom - frame.Top),
             client);
+    }
+
+    /// <summary>PID do processo pai (o LeagueClient, no caso do cliente real).</summary>
+    public static uint? GetParentProcessId(uint processId)
+    {
+        var snapshot = NativeMethods.CreateToolhelp32Snapshot(NativeMethods.Th32csSnapProcess, 0);
+        if (snapshot == -1 || snapshot == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            var entry = new NativeMethods.ProcessEntry32 { Size = (uint)sizeof(NativeMethods.ProcessEntry32) };
+            for (var ok = NativeMethods.Process32FirstW(snapshot, ref entry); ok; ok = NativeMethods.Process32NextW(snapshot, ref entry))
+            {
+                if (entry.ProcessId == processId)
+                {
+                    return entry.ParentProcessId;
+                }
+            }
+
+            return null;
+        }
+        finally
+        {
+            _ = NativeMethods.CloseHandle(snapshot);
+        }
+    }
+
+    /// <summary>Nome do processo, ou null se não existir.</summary>
+    public static string? ProcessNameOf(uint pid) => GetProcessName(pid);
+
+    /// <summary>
+    /// Pasta do executável do processo, ou null. Usa acesso limitado
+    /// (PROCESS_QUERY_LIMITED_INFORMATION), que funciona mesmo quando ler os
+    /// módulos do processo é negado.
+    /// </summary>
+    public static string? ProcessDirectoryOf(uint pid)
+    {
+        var handle = NativeMethods.OpenProcess(NativeMethods.ProcessQueryLimitedInformation, false, pid);
+        if (handle == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            var buffer = stackalloc char[1024];
+            uint size = 1024;
+            return NativeMethods.QueryFullProcessImageNameW(handle, 0, buffer, ref size)
+                ? Path.GetDirectoryName(new string(buffer, 0, (int)size))
+                : null;
+        }
+        finally
+        {
+            _ = NativeMethods.CloseHandle(handle);
+        }
     }
 
     private static List<nint> EnumerateTopLevel()

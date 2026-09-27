@@ -45,19 +45,39 @@ catch (Exception ex) when (ex is ApplicationException or DllNotFoundException or
     return 2;
 }
 
-// 2. Alvo: na v0.1, somente o simulador.
-var target = TargetWindow.Find(TargetSpec.Simulator, out var matches);
+// 2. Alvo: simulador (padrão) ou League Client, com falha fechada.
+var spec = options.Target == AgentTarget.League ? TargetSpec.League : TargetSpec.Simulator;
+var target = TargetWindow.Find(spec, out var matches);
 if (target is null)
 {
     Console.WriteLine(matches == 0
-        ? "ERRO: simulador não encontrado. Abra com: dotnet run --project src/LoLRemote.Simulator -- --fast"
-        : $"ERRO: {matches} janelas do simulador abertas. Deixe só uma.");
+        ? options.Target == AgentTarget.League
+            ? "ERRO: janela do League Client não encontrada. Abra o cliente e faça login."
+            : "ERRO: simulador não encontrado. Abra com: dotnet run --project src/LoLRemote.Simulator -- --fast"
+        : $"ERRO: {matches} janelas \"{spec.Title}\" abertas. Deixe só uma.");
     return 3;
 }
 
 Console.WriteLine($"Alvo: {target.ProcessName} (PID {target.ProcessId}).");
 
-// 3. Rede: mídia só pela Tailscale; HTTP só em loopback.
+// 3. Fonte da fase do jogo (somente leitura).
+PhaseSource phaseSource;
+if (options.Target == AgentTarget.League)
+{
+    if (PhaseSources.ForLeague(target, options.LockfilePath, out var problem) is not { } leagueSource)
+    {
+        Console.WriteLine($"ERRO: {problem}.");
+        return 4;
+    }
+
+    phaseSource = leagueSource;
+}
+else
+{
+    phaseSource = PhaseSources.ForSimulator(target);
+}
+
+// 4. Rede: mídia só pela Tailscale; HTTP só em loopback.
 var tailscale = AgentEnvironment.FindTailscaleAddress();
 Console.WriteLine(tailscale is null
     ? "AVISO: Tailscale não encontrado. A mídia fica restrita a este PC."
@@ -68,10 +88,18 @@ Directory.CreateDirectory(outputDir);
 var statsPath = Path.Combine(outputDir, $"stats-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.jsonl");
 var statsLock = new Lock();
 
+// Logs do SIPSorcery com vida própria: declarado antes dos demais recursos,
+// é descartado por último. Com o logger do servidor web, o encerramento (Ctrl+C)
+// falhava porque o servidor descartava os logs antes de a conexão fechar.
+using var sipLogs = LoggerFactory.Create(logging => logging
+    .AddSimpleConsole(console => console.SingleLine = true)
+    .SetMinimumLevel(LogLevel.Error));
+SIPSorcery.LogFactory.Set(sipLogs);
+
 using var frames = new FrameSource(target.Handle);
-await using var streamer = new VideoStreamer(frames);
+await using var streamer = new VideoStreamer(frames, options.LatencyStamp);
 streamer.Start();
-await using var phase = new PhaseMonitor(PhaseMonitor.SimulatorLockfilePath, target.ProcessId);
+await using var phase = new PhaseMonitor(phaseSource);
 phase.Start();
 var injector = new WindowsInputInjector();
 await using var sessions = new SessionManager(
@@ -93,7 +121,6 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 builder.WebHost.UseUrls($"http://127.0.0.1:{options.Port}");
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 var app = builder.Build();
-SIPSorcery.LogFactory.Set(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -153,6 +180,7 @@ app.MapPost("/api/v1/diagnostics/stats", async (HttpRequest request) =>
 
 Console.WriteLine();
 Console.WriteLine($"Pronto. HTTP em http://127.0.0.1:{options.Port} (publique com: tailscale serve --bg {options.Port}).");
+Console.WriteLine($"Carimbo de latência no vídeo: {(options.LatencyStamp ? "ligado" : "desligado")}.");
 Console.WriteLine($"Modo remoto ativo por {options.RemoteMinutes} minutos. Mexer no mouse/teclado do PC pausa o controle por 10 s.");
 Console.WriteLine("Para encerrar tudo imediatamente: Ctrl+C.");
 Console.WriteLine();

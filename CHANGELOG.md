@@ -7,6 +7,12 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Adicionado
 
+- Agente funciona com o League Client real (`--target league`): lê a fase pela
+  API local (somente leitura, HTTPS conferido pelo certificado da Riot),
+  restaura o cliente minimizado antes de clicar e mostra diagnóstico quando um
+  toque é recusado por janela na frente.
+- ADR 0003: input remoto com SendInput e verificação de primeiro plano.
+
 - Agente (`src/LoLRemote.Agent`): primeira versão que transforma toques no
   iPhone em cliques no simulador. Envia vídeo, recebe toques pelo canal de
   controle, valida cada um, traz a janela para a frente, confere que nada a
@@ -60,9 +66,16 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
 
 ### Corrigido
 
+- Agente travava ao encerrar com Ctrl+C.
+- Leitura do lockfile do cliente real falhava porque o cliente mantém o arquivo
+  aberto.
+
 - Texto do botão "ENCONTRAR PARTIDA" cortado no simulador.
 
 ### Validado
+
+- 27/09/2026, League Client real pelo iPhone: toques funcionando na sala, na
+  fila, no Ready Check e na seleção de campeões, com o Vanguard ativo.
 
 - 26/09/2026, League Client real: captura só da janela do cliente, inclusive
   coberta e em outro monitor, sem ler a API e sem clicar.

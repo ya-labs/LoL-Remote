@@ -26,6 +26,10 @@ internal static unsafe partial class NativeMethods
     public const uint MouseEventVirtualDesk = 0x4000;
     public const uint MouseEventAbsolute = 0x8000;
 
+    public const uint Th32csSnapProcess = 0x2;
+    public const int SwRestore = 9;
+    public const uint GwOwner = 4;
+
     /// <summary>Marca os eventos injetados pelo agente ("LOLR").</summary>
     public const nint InjectedMarker = 0x4C4F4C52;
 
@@ -62,6 +66,21 @@ internal static unsafe partial class NativeMethods
     {
         public uint Type;
         public MouseInput Mouse;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ProcessEntry32
+    {
+        public uint Size;
+        public uint Usage;
+        public uint ProcessId;
+        public nuint DefaultHeapId;
+        public uint ModuleId;
+        public uint Threads;
+        public uint ParentProcessId;
+        public int PriorityClassBase;
+        public uint Flags;
+        public fixed char ExeFile[260];
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -144,6 +163,37 @@ internal static unsafe partial class NativeMethods
 
     [LibraryImport("kernel32.dll")]
     public static partial uint GetTickCount();
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    public static partial nint CreateToolhelp32Snapshot(uint flags, uint processId);
+
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool Process32FirstW(nint snapshot, ref ProcessEntry32 entry);
+
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool Process32NextW(nint snapshot, ref ProcessEntry32 entry);
+
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool CloseHandle(nint handle);
+
+    public const uint ProcessQueryLimitedInformation = 0x1000;
+
+    [LibraryImport("kernel32.dll")]
+    public static partial nint OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
+
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool QueryFullProcessImageNameW(nint process, uint flags, char* buffer, ref uint size);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool ShowWindow(nint hwnd, int command);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetWindow(nint hwnd, uint command);
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmGetWindowAttribute(nint hwnd, int attribute, void* value, int size);

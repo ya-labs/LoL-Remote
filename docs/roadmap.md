@@ -85,4 +85,6 @@ bloqueio de gameplay começam na v0.1. A v0.6 consolida e audita o conjunto.
 6. [x] Implementar transformação de toque e `SendInput` no simulador.
 7. [x] Medir latência e registrar a decisão de transporte (vídeo; a latência
    do toque será medida junto com o input).
-8. [ ] Somente então testar captura e clique no League Client real.
+8. [x] Somente então testar captura e clique no League Client real
+   ([ADR 0003](adr/0003-input-com-sendinput.md)); falta confirmar o bloqueio no
+   início de uma partida real.

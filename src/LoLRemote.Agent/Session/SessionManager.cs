@@ -220,6 +220,10 @@ internal sealed class SessionManager : IAsyncDisposable
         Console.WriteLine(reason is null
             ? $"Toque #{tap.Sequence}: clique executado."
             : $"Toque #{tap.Sequence}: recusado ({reason}).");
+        if (reason == InputRejectReason.TargetObscured && _injector.LastDiagnostic is { } diagnostic)
+        {
+            Console.WriteLine($"  diagnóstico: {diagnostic}");
+        }
 
         Send(session, new InputAckMessage
         {
@@ -266,10 +270,11 @@ internal sealed class SessionManager : IAsyncDisposable
         {
             var state = BuildState();
             var consoleState = state.InputAllowed ? $"{state.Phase}: controle liberado" : $"{state.Phase}: bloqueado ({state.Reason})";
-            if (consoleState != _lastConsoleState)
+            var line = $"Estado: {consoleState} | {_phase.Status}";
+            if (line != _lastConsoleState)
             {
-                _lastConsoleState = consoleState;
-                Console.WriteLine($"Estado: {consoleState} | {_phase.Status}");
+                _lastConsoleState = line;
+                Console.WriteLine(line);
             }
 
             ActiveSession? session;

@@ -11,6 +11,18 @@ Status possíveis: **vigente**, **substituída** (com link para a nova) ou
 
 ---
 
+## D8 — Input remoto com SendInput, validado no cliente real
+
+- **Data:** 27/09/2026
+- **Decidido por:** IA, com base no teste de Nícolas
+- **Status:** vigente
+- **Contexto:** o maior risco técnico era o Vanguard descartar cliques
+  simulados no cliente do League.
+- **Decisão:** manter `SendInput` com verificação de primeiro plano, conforme
+  o [ADR 0003](adr/0003-input-com-sendinput.md).
+- **Consequência:** não é preciso driver de mouse virtual. Falta confirmar o
+  bloqueio no início de uma partida real.
+
 ## D7 — Registrar o projeto na Riot antes de usar o cliente real
 
 - **Data:** 26/09/2026

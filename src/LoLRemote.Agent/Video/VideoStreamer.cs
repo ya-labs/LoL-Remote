@@ -30,6 +30,7 @@ internal sealed class VideoStreamer : IAsyncDisposable
     private const uint Black = 0xFF000000;
 
     private readonly FrameSource _source;
+    private readonly bool _latencyStamp;
     // Quadro-chave a cada 15 quadros (1 s): após perda de pacotes, o vídeo se
     // recupera em no máximo 1 s mesmo sem pedido explícito do iPhone.
     private readonly FFmpegVideoEncoder _encoder = new(new Dictionary<string, string>
@@ -52,9 +53,10 @@ internal sealed class VideoStreamer : IAsyncDisposable
     private long _keyFramesRequested;
     private long _lastKeyFrameRequestMs = long.MinValue / 2;
 
-    public VideoStreamer(FrameSource source)
+    public VideoStreamer(FrameSource source, bool latencyStamp)
     {
         _source = source;
+        _latencyStamp = latencyStamp;
     }
 
     public long FramesSent => Interlocked.Read(ref _framesSent);
@@ -172,7 +174,10 @@ internal sealed class VideoStreamer : IAsyncDisposable
             try
             {
                 Compose(frame);
-                Stamp((uint)started);
+                if (_latencyStamp)
+                {
+                    Stamp((uint)started);
+                }
                 MemoryMarshal.AsBytes(_output.AsSpan()).CopyTo(_outputBytes);
                 var encoded = _encoder.EncodeVideo(Width, Height, _outputBytes, VideoPixelFormatsEnum.Bgra, VideoCodecsEnum.H264);
                 if (encoded is { Length: > 0 })

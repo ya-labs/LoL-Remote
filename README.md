@@ -19,8 +19,9 @@ Client:
 - controle por toque com validação e bloqueio durante a partida
   ([agente](docs/agente.md)).
 
-Falta testar com o League Client real, o que depende de revisar antes as
-políticas da Riot sobre a API local.
+Em 27/09/2026 o controle funcionou também no League Client real (produto
+registrado na Riot; ver [registro](docs/registro-riot.md)). Falta confirmar o
+bloqueio no início de uma partida real para fechar a v0.1.
 
 ## Objetivo da v1.0
 

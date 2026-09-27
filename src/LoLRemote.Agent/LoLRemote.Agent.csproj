@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Certificado raiz público da Riot, para validar o HTTPS da API local do cliente. -->
+    <None Include="riotgames.pem" CopyToOutputDirectory="PreserveNewest" Condition="Exists('riotgames.pem')" />
   </ItemGroup>
 
 </Project>
