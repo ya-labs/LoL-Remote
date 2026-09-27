@@ -72,6 +72,6 @@ tela e para a escala 0..65535 do `SendInput`.
 ## Pendente
 
 - Autenticação: token de sessão após pareamento e WebAuthn (v0.5).
-- Zoom e gestos de dois dedos (v0.2).
+- Zoom e gestos de dois dedos acontecem só no celular e não geram mensagens.
 - O spike de WebRTC continua com as rotas provisórias `/offer`, `/time` e
   `/stats`; o agente (`src/LoLRemote.Agent`) já usa as rotas do contrato.

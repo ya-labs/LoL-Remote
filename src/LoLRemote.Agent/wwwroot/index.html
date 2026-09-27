@@ -11,15 +11,36 @@
     .banner { padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; font-weight: 600; background: #1e282d; }
     .banner.ok { background: #06332f; color: var(--ok); }
     .banner.bad { background: #3a0d15; color: #ff8a9a; }
-    .stage { position: relative; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-    video { width: 100%; background: #000; border: 1px solid #785a28; display: block; pointer-events: none; }
+    .stageWrap { position: relative; }
+    .stage { position: relative; overflow: hidden; width: 100%; aspect-ratio: 16 / 9; background: #000; border: 1px solid #785a28; box-sizing: border-box;
+             touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 0 0; pointer-events: none; }
+    .zoomReset { position: absolute; right: 8px; bottom: 8px; padding: 6px 10px; background: rgba(1, 10, 19, .8); z-index: 2; }
+    .landscapeOnly { display: none; }
+
+    /* iPhone deitado: vídeo ocupa a tela, controles numa barra fina embaixo. */
+    @media (orientation: landscape) and (max-height: 540px) {
+      body { padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+      h1, .hint, details { display: none; }
+      .stageWrap { height: calc(100dvh - 52px); }
+      .stage { aspect-ratio: auto; height: 100%; border: none; }
+      .banner { position: absolute; top: 6px; left: 6px; margin: 0; padding: 4px 8px; font-size: 12px; opacity: .85; z-index: 2; pointer-events: none; }
+      .toast { position: fixed; left: 8px; bottom: 56px; margin: 0; min-height: 0; padding: 2px 6px; background: rgba(1, 10, 19, .8); pointer-events: none; z-index: 3; }
+      #bar { height: 52px; margin: 0; padding: 0 6px; align-items: center; flex-wrap: nowrap; }
+      #bar button { padding: 6px 12px; }
+      .landscapeOnly { display: inline-block; }
+      #keyboardPanel { display: none; }
+      body.kb-open #keyboardPanel { display: block; position: fixed; left: 0; right: 0; bottom: 52px; padding: 6px 10px; background: #010a13; border-top: 1px solid #785a28; z-index: 4; }
+      body.kb-open #keyboardPanel .keyboard, body.kb-open #keyboardPanel .keys { margin: 4px 0; }
+    }
     .marker { position: absolute; width: 26px; height: 26px; margin: -15px 0 0 -15px; border-radius: 50%; border: 3px solid var(--muted); pointer-events: none; transition: opacity .6s; }
     .marker.ok { border-color: var(--ok); }
     .marker.bad { border-color: var(--bad); }
     .toast { min-height: 22px; margin: 8px 0; color: #ff8a9a; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
     .keyboard { display: flex; gap: 6px; margin: 8px 0; }
-    .keyboard input { flex: 1; min-width: 0; font: inherit; padding: 10px; border-radius: 8px; border: 1px solid #785a28; background: #0a1428; color: #f0e6d2; }
+    /* 16px: com fonte menor o Safari do iPhone dá zoom na página ao focar o campo. */
+    .keyboard input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 10px; border-radius: 8px; border: 1px solid #785a28; background: #0a1428; color: #f0e6d2; }
     .keys button { padding: 8px 12px; }
     .hint { color: var(--muted); font-size: 13px; margin: 4px 0; }
     button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--gold); background: #1e282d; color: #f0e6d2; }
@@ -34,14 +55,17 @@
 <body>
   <h1>LoL Remote</h1>
   <div id="insecure" class="warn">Esta página não está em HTTPS. Abra pelo endereço do Tailscale Serve (https://...ts.net).</div>
-  <div id="banner" class="banner">Desconectado</div>
-
-  <div id="stage" class="stage">
-    <video id="video" playsinline muted autoplay></video>
+  <div class="stageWrap">
+    <div id="banner" class="banner">Desconectado</div>
+    <div id="stage" class="stage">
+      <video id="video" playsinline muted autoplay></video>
+    </div>
+    <button id="zoomReset" class="zoomReset" hidden>1x</button>
   </div>
   <div id="toast" class="toast"></div>
-  <div class="hint">Toque para clicar · arraste para cima/baixo para rolar</div>
+  <div class="hint">Toque para clicar · arraste para rolar · pinça com dois dedos para zoom (e para mover com zoom)</div>
 
+  <div id="keyboardPanel">
   <form id="typeForm" class="keyboard" autocomplete="off">
     <input id="typeText" maxlength="64" placeholder="Digitar no PC (ex.: nome do campeão)" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false">
     <button type="submit">Enviar</button>
@@ -52,10 +76,12 @@
     <button data-key="escape">Esc</button>
     <button data-key="tab">Tab</button>
   </div>
+  </div>
 
-  <div class="row">
+  <div id="bar" class="row">
     <button id="connect">Conectar</button>
     <button id="disconnect" disabled>Desconectar</button>
+    <button id="kbToggle" class="landscapeOnly">Teclado</button>
   </div>
 
   <details>
@@ -190,16 +216,76 @@
       return marker;
     }
 
+    // ---- Zoom (dois dedos) ------------------------------------------------
+    // O vídeo é ampliado com transform; o cálculo do ponto tocado usa a caixa
+    // já transformada do vídeo, então o clique continua caindo no lugar certo.
+    const MAX_ZOOM = 4;
+    const zoom = { scale: 1, tx: 0, ty: 0 };
+    const pointers = new Map();   // pointerId -> { x, y } relativos ao palco
+    let pinch = null;
+    let suppress = false;         // depois de um gesto de dois dedos, ignora até soltar tudo
+
+    function applyZoom() {
+      const w = stage.clientWidth, h = stage.clientHeight;
+      zoom.scale = Math.min(MAX_ZOOM, Math.max(1, zoom.scale));
+      zoom.tx = Math.min(0, Math.max(w - w * zoom.scale, zoom.tx));
+      zoom.ty = Math.min(0, Math.max(h - h * zoom.scale, zoom.ty));
+      video.style.transform = zoom.scale === 1 ? '' : `translate(${zoom.tx}px, ${zoom.ty}px) scale(${zoom.scale})`;
+      $('zoomReset').hidden = zoom.scale < 1.01;
+    }
+
+    function resetZoom() { zoom.scale = 1; zoom.tx = 0; zoom.ty = 0; applyZoom(); }
+
+    function stagePoint(event) {
+      const rect = stage.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    function pinchState() {
+      const [a, b] = [...pointers.values()];
+      return { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+    }
+
+    $('zoomReset').addEventListener('click', resetZoom);
+    window.addEventListener('resize', resetZoom);
+
+    // ---- Toque e rolagem (um dedo) -----------------------------------------
     stage.addEventListener('pointerdown', event => {
       event.preventDefault();
-      if (!channelOpen()) { return; }
+      stage.setPointerCapture(event.pointerId);
+      pointers.set(event.pointerId, stagePoint(event));
+
+      if (pointers.size === 2) {
+        gesture = null;
+        suppress = true;
+        const { distance, mid } = pinchState();
+        pinch = { distance, mid, scale: zoom.scale, tx: zoom.tx, ty: zoom.ty };
+        return;
+      }
+
+      if (pointers.size > 2 || suppress || !channelOpen()) { return; }
       const point = videoPoint(event);
       if (!point) { return; }
-      stage.setPointerCapture(event.pointerId);
       gesture = { id: event.pointerId, point, startY: event.clientY, lastY: event.clientY, scrolling: false };
     });
 
     stage.addEventListener('pointermove', event => {
+      if (!pointers.has(event.pointerId)) { return; }
+      pointers.set(event.pointerId, stagePoint(event));
+
+      if (pinch && pointers.size >= 2) {
+        const { distance, mid } = pinchState();
+        const scale = Math.min(MAX_ZOOM, Math.max(1, pinch.scale * distance / pinch.distance));
+        // Mantém embaixo dos dedos o mesmo ponto do vídeo do início do gesto.
+        const contentX = (pinch.mid.x - pinch.tx) / pinch.scale;
+        const contentY = (pinch.mid.y - pinch.ty) / pinch.scale;
+        zoom.scale = scale;
+        zoom.tx = mid.x - contentX * scale;
+        zoom.ty = mid.y - contentY * scale;
+        applyZoom();
+        return;
+      }
+
       if (!gesture || event.pointerId !== gesture.id || !channelOpen()) { return; }
       if (!gesture.scrolling && Math.abs(event.clientY - gesture.startY) > TAP_SLOP) { gesture.scrolling = true; }
       if (!gesture.scrolling) { return; }
@@ -212,6 +298,9 @@
     });
 
     function endGesture(event, cancelled) {
+      pointers.delete(event.pointerId);
+      if (pointers.size < 2) { pinch = null; }
+      if (pointers.size === 0) { suppress = false; }
       if (!gesture || event.pointerId !== gesture.id) { return; }
       const { point, scrolling } = gesture;
       gesture = null;
@@ -222,6 +311,11 @@
 
     stage.addEventListener('pointerup', event => endGesture(event, false));
     stage.addEventListener('pointercancel', event => endGesture(event, true));
+
+    $('kbToggle').addEventListener('click', () => {
+      document.body.classList.toggle('kb-open');
+      if (document.body.classList.contains('kb-open')) { $('typeText').focus(); }
+    });
 
     $('typeForm').addEventListener('submit', event => {
       event.preventDefault();
@@ -391,6 +485,7 @@
       if (pc) { pc.close(); pc = null; }
       video.srcObject = null;
       pending.forEach(item => { if (item.marker) { item.marker.remove(); } });
+      resetZoom();
       pending.clear();
       setBanner('Desconectado');
       $('connect').disabled = false;

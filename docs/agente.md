@@ -68,6 +68,13 @@ No iPhone, abra o endereço do Tailscale Serve e toque em Conectar.
 - Validado no cliente real em 27/09/2026: rolagem da lista de campeões, busca
   por texto, Apagar e chat.
 
+- **Zoom:** pinça com dois dedos sobre o vídeo amplia até 4x; com zoom, dois
+  dedos também movem a imagem. O botão "1x" volta ao normal. Um dedo continua
+  clicando e rolando, no ponto certo mesmo com zoom.
+- **iPhone deitado:** o vídeo ocupa a tela, a faixa de estado fica pequena no
+  canto e os controles vão para uma barra embaixo; o botão "Teclado" abre a
+  caixa de texto e as teclas.
+
 Roteiro no cliente real (seleção de campeões de uma partida personalizada):
 
 1. Arraste na lista de campeões para rolar.

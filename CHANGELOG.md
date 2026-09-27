@@ -12,6 +12,10 @@ tag no Git. O formato segue a ideia do [Keep a Changelog](https://keepachangelog
   nunca registrado.
 - Contrato: mensagens `input.scroll`, `input.text` e `input.key`, com exemplos
   válidos, inválidos e recusados.
+- Zoom com dois dedos sobre o vídeo (até 4x, botão "1x" para voltar) e layout
+  para iPhone deitado, com o vídeo cabendo na tela e os controles numa barra.
+  O campo de texto não provoca mais o zoom automático do Safari ao abrir o
+  teclado.
 
 ### Alterado
 
